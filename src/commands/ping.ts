@@ -1,7 +1,7 @@
 import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
-  AutocompleteInteraction,
+  MessageFlags,
 } from "discord.js";
 import { Command } from "../types/command";
 
@@ -13,9 +13,13 @@ export default {
   cooldown: 5,
 
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply({
+      flags: [MessageFlags.Ephemeral],
+    });
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await interaction.editReply("Pong!");
+    await interaction.editReply({
+      content: "Pong!",
+    });
   },
 } as Command;
 

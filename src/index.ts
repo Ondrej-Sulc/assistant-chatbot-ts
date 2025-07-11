@@ -4,6 +4,7 @@ import {
   GatewayIntentBits,
   Partials,
   Collection,
+  MessageFlags,
 } from "discord.js";
 import { config } from "./config";
 import { loadCommands, commands } from "./utils/commandHandler";
@@ -44,13 +45,6 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
 });
 
-client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot) return;
-  if (message.content.toLowerCase() === "ping") {
-    await message.reply("Pong!");
-  }
-});
-
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
   
@@ -67,12 +61,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       console.error(`Error executing command ${interaction.commandName}:`, error);
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply({
-          content: "There was an error while executing this command!"
+          content: "There was an error while executing this command!",
+          flags: [],
         });
       } else {
         await interaction.reply({
           content: "There was an error while executing this command!",
-          ephemeral: true,
+          flags: [MessageFlags.Ephemeral],
         });
       }
     }

@@ -14,9 +14,13 @@
   "type": "commonjs",
   "dependencies": {
     "discord.js": "^14.21.0",
-    "dotenv": "^17.2.0"
+    "dotenv": "^17.2.0",
+    "googleapis": "^152.0.0",
+    "luxon": "^3.7.1"
   },
   "devDependencies": {
+    "@types/gapi.client.sheets": "^4.0.20201031",
+    "@types/luxon": "^3.6.2",
     "@types/node": "^24.0.12",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
