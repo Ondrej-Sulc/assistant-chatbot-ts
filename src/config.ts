@@ -1,21 +1,26 @@
 import "dotenv/config";
 
-export const config = {
+// Type for config object
+interface Config {
+  BOT_TOKEN: string | undefined;
+  APPLICATION_ID: string | undefined;
+  NOTION_API_KEY: string | undefined;
+  OPEN_ROUTER_API_KEY: string | undefined;
+  GOOGLE_CREDENTIALS_JSON: string | undefined;
+  EXERCISE_SHEET_ID: string;
+  TIMEZONE: string;
+  NOTION_TASKS_DATABASE_ID: string;
+}
+
+export const config: Config = {
   BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
   APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
-
   NOTION_API_KEY: process.env.NOTION_API_KEY,
   OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
-
   GOOGLE_CREDENTIALS_JSON: process.env.GOOGLE_CREDENTIALS_JSON,
-
   // Sheets config
   EXERCISE_SHEET_ID: '14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc',
-  EXERCISE_SHEET_NAME: 'Logs',
-  EXERCISE_SHEET_DATE_RANGE: 'A1:A',
-
   TIMEZONE: "Europe/Prague",
-
   // Notion config
   NOTION_TASKS_DATABASE_ID: 'b901624ee2024a2b8c2bfbe6f94cacd4',
 };

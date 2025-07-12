@@ -9,6 +9,7 @@ import {
 import { config } from "./config";
 import { loadCommands, commands } from "./utils/commandHandler";
 import { Command } from "./types/command";
+import { getButtonHandler } from "./utils/buttonHandlerRegistry";
 
 declare module "discord.js" {
   interface Client {
@@ -46,7 +47,18 @@ client.once(Events.ClientReady, async (readyClient) => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
+  // Handle button interactions generically
+  if (interaction.isButton()) {
+    const handler = getButtonHandler(interaction.customId);
+    if (handler) {
+      await handler(interaction);
+    } else {
+      await interaction.reply({ content: "Unknown button.", ephemeral: true });
+    }
+    return;
+  }
+
+  if (!interaction.isChatInputCommand()) return;
   
     const command = client.commands.get(interaction.commandName);
   
@@ -76,4 +88,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (!config.BOT_TOKEN) {
     throw new Error("DISCORD_BOT_TOKEN is not defined in the .env file.");
   }
-  client.login(config.BOT_TOKEN);
+  try {
+    client.login(config.BOT_TOKEN);
+  } catch (error) {
+    console.error("Failed to login to Discord:", error);
+    process.exit(1);
+  }
