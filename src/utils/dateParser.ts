@@ -26,6 +26,35 @@ export function parseNaturalDate(input: string, now: Date = new Date()): string 
     return tomorrow.toISOString().slice(0, 10);
   }
 
+  // Next week
+  if (lower === "next week") {
+    const target = new Date(now);
+    target.setDate(now.getDate() + 7);
+    return target.toISOString().slice(0, 10);
+  }
+
+  // in X days
+  const inDaysMatch = lower.match(/^in (\d+) days?$/);
+  if (inDaysMatch) {
+    const days = parseInt(inDaysMatch[1], 10);
+    if (!isNaN(days)) {
+      const target = new Date(now);
+      target.setDate(now.getDate() + days);
+      return target.toISOString().slice(0, 10);
+    }
+  }
+
+  // in X weeks
+  const inWeeksMatch = lower.match(/^in (\d+) weeks?$/);
+  if (inWeeksMatch) {
+    const weeks = parseInt(inWeeksMatch[1], 10);
+    if (!isNaN(weeks)) {
+      const target = new Date(now);
+      target.setDate(now.getDate() + weeks * 7);
+      return target.toISOString().slice(0, 10);
+    }
+  }
+
   // Days of the week
   const weekdayIdx = WEEKDAYS.indexOf(lower);
   if (weekdayIdx !== -1) {
