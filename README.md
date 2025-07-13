@@ -1,69 +1,49 @@
-# Assistant Chatbot (TypeScript)
+# Assistant Chatbot (TypeScript) — Personal Notes
 
-A personal Discord chatbot with Google Sheets and Notion integration, written in TypeScript.
+## Project Purpose
+- Personal Discord bot for tracking exercise, managing tasks (Notion), and experimenting with AI (OpenRouter).
+- Modular command system, easy to extend.
 
-## Features
-- Slash commands (e.g., /exercise, /ping)
-- Exercise logging and stats with Google Sheets
-- Notion integration for tasks
-- Modular command system
-- TypeScript for type safety
-- Docker support
-
-## Setup
-
-1. **Clone the repository:**
-   ```sh
-   git clone <your-repo-url>
-   cd assistant-chatbot-ts
-   ```
-
-2. **Install dependencies:**
-   ```sh
-   npm install
-   ```
-
-3. **Configure environment variables:**
-   - Copy `.env.example` to `.env` and fill in your secrets:
-     ```sh
-     cp .env.example .env
-     ```
-   - Edit `.env` with your Discord, Google, and Notion credentials.
-
-4. **Run the bot:**
-   ```sh
-   npm run build
-   npm start
-   ```
-   Or with Docker:
-   ```sh
-   docker-compose up --build
-   ```
-
-## Environment Variables
-See `.env.example` for all required and optional variables.
-
-- `DISCORD_BOT_TOKEN` - Your Discord bot token
-- `DISCORD_APPLICATION_ID` - Your Discord application ID
-- `NOTION_API_KEY` - Notion integration token
-- `NOTION_TASKS_DATABASE_ID` - Notion database for tasks
-- `OPEN_ROUTER_API_KEY` - OpenRouter API key (for AI features)
-- `GOOGLE_CREDENTIALS_JSON` - Google service account credentials (as JSON string)
-- `TIMEZONE` - (Optional) Timezone for date formatting (default: Europe/Prague)
+## Technologies Used
+- **TypeScript** (strict mode)
+- **Discord.js v14** (slash commands, components)
+- **Google Sheets API** (exercise logging)
+- **Notion API** (task management)
+- **OpenRouter API** (AI chat/completions)
+- **Docker** (for deployment/testing)
 
 ## Project Structure
-- `src/commands/` - Command modules
-- `src/utils/` - Utilities and service integrations
-- `src/types/` - TypeScript type definitions
-- `src/config.ts` - Configuration loader
-- `src/index.ts` - Bot entry point
+- `src/commands/` — All slash commands (e.g., exercise, today, ping)
+- `src/utils/` — Service helpers (sheets, notion, openrouter, button registry)
+- `src/types/` — Shared TypeScript types
+- `src/config.ts` — Loads env vars, exits if missing
+- `src/index.ts` — Bot entry point, command loader, interaction handler
 
-## Contributing
-Pull requests and issues are welcome! Please:
-- Use conventional commit messages
-- Write clear, concise code and comments
-- Add or update types as needed
-- Run `npm run lint` before submitting
+## Environment Variables
+- See `.env.example` for all required keys (Discord, Notion, Google, OpenRouter)
+- Google credentials are a JSON string
+- Notion DB ID is hardcoded for now
 
-## License
-MIT 
+## Notable Features / Quirks
+- Exercise logging: `/exercise pushup|pullup` logs to Google Sheets, `/exercise stats` shows chart or today's stats
+- `/today` command: fetches tasks from Notion, displays each with a ☑️ button to mark as done
+- Button handlers are registered by prefix (see `buttonHandlerRegistry`)
+- All error replies are ephemeral and use a `safeReply` helper
+- Uses Discord.js v14 "V2" components (ContainerBuilder, SectionBuilder, etc)
+- All commands are auto-loaded from `src/commands/`
+
+## TODO / Ideas
+- Add more Notion task filters (e.g., by due date, priority)
+- Add OpenRouter-powered chat command
+- Add tests for utils/services
+- Add a refresh button to `/today` to reload tasks after marking done
+- Refactor large command files if they grow
+
+## Setup Reminders
+- Use `docker-compose up --build`
+- If adding new commands, just drop them in `src/commands/` and export default
+- For new button types, register handler with `registerButtonHandler`
+
+---
+
+*These notes are for my own reference. Update as needed when adding features or changing structure.* 
