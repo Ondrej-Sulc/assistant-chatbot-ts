@@ -9,6 +9,26 @@ interface GoogleCredentials {
   [key: string]: any;
 }
 
+// Type for a row in the Schedules sheet
+export interface ScheduleRow {
+  id: string;
+  type: string;
+  frequency: string;
+  time: string;
+  command: string;
+  target_channel_id?: string;
+  target_user_id?: string;
+  is_active: boolean;
+  created_at: string;
+  day?: string;
+  interval?: string;
+  unit?: string;
+  cron_expression?: string;
+}
+
+const SCHEDULES_SHEET_NAME = "Schedules";
+const SCHEDULES_RANGE = `${SCHEDULES_SHEET_NAME}!A:N`;
+
 class SheetsService {
   private sheets: sheets_v4.Sheets;
 
@@ -105,3 +125,75 @@ class SheetsService {
 }
 
 export const sheetsService = new SheetsService();
+
+export async function getSchedules(): Promise<ScheduleRow[]> {
+  const rows = (await sheetsService.readSheet(config.EXERCISE_SHEET_ID, SCHEDULES_RANGE)) || [];
+  // Remove header if present
+  if (rows.length && rows[0][0] === "id") {
+    rows.shift();
+  }
+  return rows.map((row) => ({
+    id: row[0],
+    type: row[1],
+    frequency: row[2],
+    time: row[3],
+    command: row[4],
+    target_channel_id: row[5],
+    target_user_id: row[6],
+    is_active: row[7] === "TRUE" || row[7] === true,
+    created_at: row[8],
+    day: row[9],
+    interval: row[10],
+    unit: row[11],
+    cron_expression: row[12],
+  }));
+}
+
+export async function addSchedule(schedule: Omit<ScheduleRow, "id" | "created_at">): Promise<void> {
+  const now = new Date().toISOString();
+  const id = `${Date.now()}`;
+  const row = [
+    id,
+    schedule.type,
+    schedule.frequency,
+    schedule.time,
+    schedule.command,
+    schedule.target_channel_id || "",
+    schedule.target_user_id || "",
+    schedule.is_active ? "TRUE" : "FALSE",
+    now,
+    schedule.day || "",
+    schedule.interval || "",
+    schedule.unit || "",
+    schedule.cron_expression || "",
+  ];
+  await sheetsService.appendSheet(config.EXERCISE_SHEET_ID, SCHEDULES_SHEET_NAME, [row]);
+}
+
+export async function updateSchedule(id: string, updates: Partial<ScheduleRow>): Promise<void> {
+  const schedules = await getSchedules();
+  const idx = schedules.findIndex((s) => s.id === id);
+  if (idx === -1) throw new Error("Schedule not found");
+  const updated = { ...schedules[idx], ...updates };
+  const row = [
+    updated.id,
+    updated.type,
+    updated.frequency,
+    updated.time,
+    updated.command,
+    updated.target_channel_id || "",
+    updated.target_user_id || "",
+    updated.is_active ? "TRUE" : "FALSE",
+    updated.created_at,
+    updated.day || "",
+    updated.interval || "",
+    updated.unit || "",
+    updated.cron_expression || "",
+  ];
+  const writeRange = `${SCHEDULES_SHEET_NAME}!A${idx + 2}:N${idx + 2}`;
+  await sheetsService.writeSheet(config.EXERCISE_SHEET_ID, writeRange, [row]);
+}
+
+export async function deleteSchedule(id: string): Promise<void> {
+  await updateSchedule(id, { is_active: false });
+}
