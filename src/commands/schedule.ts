@@ -134,19 +134,19 @@ export default {
         const command = interaction.options.getString("command", true);
         let target_channel_id = interaction.options.getString("target_channel_id") || undefined;
         let target_user_id = interaction.options.getString("target_user_id") || undefined;
-
-        // Set default target if both are missing
-        if (!target_channel_id && !target_user_id) {
-        if (interaction.channel && interaction.channel.isDMBased()) {
-            target_user_id = interaction.user.id;
-        } else if (interaction.channel && "id" in interaction.channel) {
-            target_channel_id = interaction.channel.id;
-        }
-        }
         const day = interaction.options.getString("day") || undefined;
         const interval = interaction.options.getString("interval") || undefined;
         const unit = interaction.options.getString("unit") || undefined;
         const cron_expression = interaction.options.getString("cron_expression") || undefined;
+
+        // Set default target if not provided
+        if (!target_channel_id && !target_user_id) {
+          if (interaction.channel && interaction.channel.isTextBased() && interaction.guildId) {
+            target_channel_id = interaction.channelId;
+          } else {
+            target_user_id = interaction.user.id;
+          }
+        }
 
         await addSchedule({
           type,

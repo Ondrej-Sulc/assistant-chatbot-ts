@@ -19,13 +19,44 @@ class FakeInteraction {
     this.user = user;
   }
 
-  async reply({ content, ...rest }: { content: string }) {
+  // Helper to convert builder components to raw Discord.js data
+  normalizeComponents(components: any) {
+    if (!components) return undefined;
+    // If it's a builder with toJSON, call it
+    if (typeof components.toJSON === "function") {
+      components = components.toJSON();
+    }
+    // If it's a single object, wrap in array
+    if (!Array.isArray(components)) {
+      components = [components];
+    }
+    // If already in raw format, return as is
+    if (components[0] && typeof components[0].type === "number") {
+      return components;
+    }
+    // Otherwise, try to call toJSON on each builder
+    return components.map((c: any) => (typeof c.toJSON === "function" ? c.toJSON() : c));
+  }
+
+  async reply({ content, components, ...rest }: { content?: string, components?: any }) {
     this.replied = true;
-    this.repliedContent = content;
+    this.repliedContent = content ?? null;
+    const normalizedComponents = this.normalizeComponents(components);
+    if (normalizedComponents) {
+      console.log('[FakeInteraction] Sending components:', JSON.stringify(normalizedComponents, null, 2));
+    }
     if (this.channel) {
-      await this.channel.send(content);
+      if (content) {
+        await this.channel.send({ content, components: normalizedComponents });
+      } else if (components) {
+        await this.channel.send({ content: " ", components: normalizedComponents });
+      }
     } else if (this.user) {
-      await this.user.send(content);
+      if (content) {
+        await this.user.send({ content, components: normalizedComponents });
+      } else if (components) {
+        await this.user.send({ content: " ", components: normalizedComponents });
+      }
     }
   }
 
@@ -33,12 +64,24 @@ class FakeInteraction {
     this.deferred = true;
   }
 
-  async editReply({ content }: { content: string }) {
-    this.repliedContent = content;
+  async editReply({ content, components, ...rest }: { content?: string, components?: any }) {
+    this.repliedContent = content ?? null;
+    const normalizedComponents = this.normalizeComponents(components);
+    if (normalizedComponents) {
+      console.log('[FakeInteraction] Sending components:', JSON.stringify(normalizedComponents, null, 2));
+    }
     if (this.channel) {
-      await this.channel.send(content);
+      if (content) {
+        await this.channel.send({ content, components: normalizedComponents });
+      } else if (components) {
+        await this.channel.send({ content: " ", components: normalizedComponents });
+      }
     } else if (this.user) {
-      await this.user.send(content);
+      if (content) {
+        await this.user.send({ content, components: normalizedComponents });
+      } else if (components) {
+        await this.user.send({ content: " ", components: normalizedComponents });
+      }
     }
   }
 }

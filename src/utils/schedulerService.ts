@@ -6,6 +6,17 @@ import { config } from "../config";
 
 const jobs: Record<string, ScheduledTask[]> = {};
 
+// Utility to convert Google Sheets time (fraction) to HH:mm
+function sheetTimeToHHmm(value: string): string {
+  if (/^\d{1,2}:\d{2}$/.test(value)) return value; // already HH:mm
+  const num = parseFloat(value);
+  if (isNaN(num)) return value; // fallback for already-correct strings
+  const totalMinutes = Math.round(num * 24 * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
 function getCronExpressions(schedule: ScheduleRow): string[] {
   // If custom cron_expression is provided, use it directly
   if (schedule.frequency === "custom" && schedule.cron_expression) {
@@ -13,7 +24,7 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
   }
 
   // Support multiple times per day (comma-separated)
-  const times = (schedule.time || "").split(",").map((t) => t.trim()).filter(Boolean);
+  const times = (schedule.time || "").split(",").map((t) => sheetTimeToHHmm(t.trim())).filter(Boolean);
   const crons: string[] = [];
 
   for (const time of times) {
