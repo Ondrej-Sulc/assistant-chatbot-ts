@@ -12,10 +12,11 @@ interface GoogleCredentials {
 // Type for a row in the Schedules sheet
 export interface ScheduleRow {
   id: string;
-  type: string;
+  name: string; // user-defined label for the schedule
   frequency: string;
   time: string;
   command: string;
+  message?: string;
   target_channel_id?: string;
   target_user_id?: string;
   is_active: boolean;
@@ -27,6 +28,7 @@ export interface ScheduleRow {
 }
 
 const SCHEDULES_SHEET_NAME = "Schedules";
+// Now 14 columns: id, name, frequency, time, command, message, target_channel_id, target_user_id, is_active, created_at, day, interval, unit, cron_expression
 const SCHEDULES_RANGE = `${SCHEDULES_SHEET_NAME}!A:N`;
 
 class SheetsService {
@@ -126,6 +128,27 @@ class SheetsService {
 
 export const sheetsService = new SheetsService();
 
+// Helper to convert Google Sheets time fraction or number to HH:mm
+function toReadableTimeFormat(value: string): string {
+  if (!value) return value;
+  if (/^\d{1,2}:\d{2}$/.test(value)) return value; // already HH:mm
+  // Support comma-separated times
+  return value
+    .split(",")
+    .map((t) => {
+      const trimmed = t.trim();
+      const num = parseFloat(trimmed);
+      if (!isNaN(num)) {
+        const totalMinutes = Math.round(num * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+      }
+      return trimmed;
+    })
+    .join(",");
+}
+
 export async function getSchedules(): Promise<ScheduleRow[]> {
   const rows = (await sheetsService.readSheet(config.EXERCISE_SHEET_ID, SCHEDULES_RANGE)) || [];
   // Remove header if present
@@ -134,18 +157,19 @@ export async function getSchedules(): Promise<ScheduleRow[]> {
   }
   return rows.map((row) => ({
     id: row[0],
-    type: row[1],
+    name: row[1],
     frequency: row[2],
     time: row[3],
     command: row[4],
-    target_channel_id: row[5],
-    target_user_id: row[6],
-    is_active: row[7] === "TRUE" || row[7] === true,
-    created_at: row[8],
-    day: row[9],
-    interval: row[10],
-    unit: row[11],
-    cron_expression: row[12],
+    message: row[5],
+    target_channel_id: row[6],
+    target_user_id: row[7],
+    is_active: row[8] === "TRUE" || row[8] === true,
+    created_at: row[9],
+    day: row[10],
+    interval: row[11],
+    unit: row[12],
+    cron_expression: row[13],
   }));
 }
 
@@ -154,10 +178,11 @@ export async function addSchedule(schedule: Omit<ScheduleRow, "id" | "created_at
   const id = `${Date.now()}`;
   const row = [
     id,
-    schedule.type,
+    schedule.name,
     schedule.frequency,
-    schedule.time,
+    toReadableTimeFormat(schedule.time),
     schedule.command,
+    schedule.message || "",
     schedule.target_channel_id || "",
     schedule.target_user_id || "",
     schedule.is_active ? "TRUE" : "FALSE",
@@ -177,10 +202,11 @@ export async function updateSchedule(id: string, updates: Partial<ScheduleRow>):
   const updated = { ...schedules[idx], ...updates };
   const row = [
     updated.id,
-    updated.type,
+    updated.name,
     updated.frequency,
-    updated.time,
+    toReadableTimeFormat(updated.time),
     updated.command,
+    updated.message || "",
     updated.target_channel_id || "",
     updated.target_user_id || "",
     updated.is_active ? "TRUE" : "FALSE",

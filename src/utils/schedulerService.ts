@@ -1,6 +1,6 @@
 import cron, { ScheduledTask } from "node-cron";
 import { getSchedules, ScheduleRow } from "./sheetsService";
-import { Client, ChannelType, TextChannel, ThreadChannel } from "discord.js";
+import { Client, ChannelType, TextChannel, ThreadChannel, MessageFlags } from "discord.js";
 import { config } from "../config";
 import fs from "fs";
 import path from "path";
@@ -91,8 +91,12 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
 }
 
 async function runScheduledCommand(commandString: string, params: any, client: Client, channelId: string | undefined, userId?: string) {
-  if (!channelId) {
-    console.warn(`[Scheduler] No channelId provided for scheduled command: ${commandString}`);
+  // Decide where to send the message: DM to user or to channel
+  const targetUserId = userId || params.targetUserId;
+  const targetChannelId = channelId || params.targetChannelId;
+
+  if (!targetUserId && !targetChannelId) {
+    console.warn(`[Scheduler] No target_user_id or target_channel_id provided for scheduled command: ${commandString}`);
     return;
   }
   // Parse command string: e.g. "/today" or "/exercise pushup"
@@ -105,30 +109,89 @@ async function runScheduledCommand(commandString: string, params: any, client: C
   // Call the core function with params
   let result;
   try {
-    result = await coreFn({ ...params, args, userId });
+    result = await coreFn({ ...params, args, userId: targetUserId });
   } catch (err) {
     console.error(`[Scheduler] Error running core for ${cmdName}:`, err);
     result = { content: `Failed to run scheduled command: ${cmdName}` };
   }
-  // Send result to channel
-  const channel = await client.channels.fetch(channelId);
-  if (
-    channel &&
-    (channel.type === ChannelType.GuildText ||
-      channel.type === ChannelType.PublicThread ||
-      channel.type === ChannelType.PrivateThread)
-  ) {
-    const sendable = channel as TextChannel | ThreadChannel;
-    if (result.components && result.components.length > 0) {
-      await sendable.send({
-        content: result.content || undefined,
-        components: result.components,
-      });
-    } else {
-      await sendable.send(result.content || `Scheduled command ran: ${cmdName}`);
+
+  if (targetUserId) {
+    // Send DM to user
+    try {
+      const user = await client.users.fetch(targetUserId);
+      if (user) {
+        const messageOptions: any = {};
+        if (result.content) messageOptions.content = result.content;
+        if (result.components && result.components.length > 0) messageOptions.components = result.components;
+        if (result.isComponentsV2) messageOptions.flags = MessageFlags.IsComponentsV2;
+        if (Object.keys(messageOptions).length === 0) messageOptions.content = `Scheduled command ran: ${cmdName}`;
+        await user.send(messageOptions);
+        return;
+      }
+    } catch (err) {
+      console.warn(`[Scheduler] Could not DM user: ${targetUserId}`, err);
     }
-  } else {
-    console.warn(`[Scheduler] Could not find text channel: ${channelId}`);
+  }
+
+  if (targetChannelId) {
+    // Send to channel
+    try {
+      const channel = await client.channels.fetch(targetChannelId);
+      if (
+        channel &&
+        (channel.type === ChannelType.GuildText ||
+          channel.type === ChannelType.PublicThread ||
+          channel.type === ChannelType.PrivateThread)
+      ) {
+        const sendable = channel as TextChannel | ThreadChannel;
+        const messageOptions: any = {};
+        if (result.content) messageOptions.content = result.content;
+        if (result.components && result.components.length > 0) messageOptions.components = result.components;
+        if (result.isComponentsV2) messageOptions.flags = MessageFlags.IsComponentsV2;
+        if (Object.keys(messageOptions).length === 0) messageOptions.content = `Scheduled command ran: ${cmdName}`;
+        await sendable.send(messageOptions);
+      } else {
+        console.warn(`[Scheduler] Could not find text channel: ${targetChannelId}`);
+      }
+    } catch (err) {
+      console.warn(`[Scheduler] Error sending to channel: ${targetChannelId}`, err);
+    }
+  }
+}
+
+async function sendScheduledMessage(message: string, client: Client, channelId?: string, userId?: string) {
+  if (!userId && !channelId) {
+    console.warn(`[Scheduler] No target_user_id or target_channel_id provided for scheduled message: ${message}`);
+    return;
+  }
+  if (userId) {
+    try {
+      const user = await client.users.fetch(userId);
+      if (user) {
+        await user.send({ content: message });
+        return;
+      }
+    } catch (err) {
+      console.warn(`[Scheduler] Could not DM user: ${userId}`, err);
+    }
+  }
+  if (channelId) {
+    try {
+      const channel = await client.channels.fetch(channelId);
+      if (
+        channel &&
+        (channel.type === ChannelType.GuildText ||
+          channel.type === ChannelType.PublicThread ||
+          channel.type === ChannelType.PrivateThread)
+      ) {
+        const sendable = channel as TextChannel | ThreadChannel;
+        await sendable.send({ content: message });
+      } else {
+        console.warn(`[Scheduler] Could not find text channel: ${channelId}`);
+      }
+    } catch (err) {
+      console.warn(`[Scheduler] Error sending to channel: ${channelId}`, err);
+    }
   }
 }
 
@@ -150,21 +213,32 @@ export async function startScheduler(client: Client) {
         cronExpr,
         async () => {
           console.log(`[Scheduler] Triggering schedule:`, schedule);
-          await runScheduledCommand(
-            schedule.command,
-            {
-              targetChannelId: schedule.target_channel_id,
-              targetUserId: schedule.target_user_id,
-            },
-            client,
-            schedule.target_channel_id,
-            schedule.target_user_id
-          );
+          if (schedule.message && schedule.message.trim()) {
+            await sendScheduledMessage(
+              schedule.message,
+              client,
+              schedule.target_channel_id,
+              schedule.target_user_id
+            );
+          } else if (schedule.command && schedule.command.trim()) {
+            await runScheduledCommand(
+              schedule.command,
+              {
+                targetChannelId: schedule.target_channel_id,
+                targetUserId: schedule.target_user_id,
+              },
+              client,
+              schedule.target_channel_id,
+              schedule.target_user_id
+            );
+          } else {
+            console.warn(`[Scheduler] No command or message to run for schedule:`, schedule);
+          }
         },
         { timezone: config.TIMEZONE }
       );
       jobs[schedule.id].push(job);
-      console.log(`[Scheduler] Scheduled: ${schedule.command} (${cronExpr}) [${schedule.id}]`);
+      console.log(`[Scheduler] Scheduled: ${schedule.name} (${cronExpr}) [${schedule.id}]`);
     }
   }
 } 

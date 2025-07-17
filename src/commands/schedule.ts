@@ -13,6 +13,23 @@ import { Command } from "../types/command";
 import { addSchedule, getSchedules, deleteSchedule } from "../utils/sheetsService";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { startScheduler } from "../utils/schedulerService";
+import { commands as loadedCommands } from "../utils/commandHandler";
+
+// Helper to recursively extract subcommands and subcommand groups from a command's options
+function extractSubcommands(options: any[], parent: string, allChoices: string[]) {
+  for (const opt of options) {
+    if (opt.type === 1 && typeof opt.name === 'string') {
+      allChoices.push(`/${parent} ${opt.name}`);
+    } else if (opt.type === 2 && Array.isArray(opt.options)) {
+      // Subcommand group
+      for (const sub of opt.options) {
+        if (sub.type === 1 && typeof sub.name === 'string') {
+          allChoices.push(`/${parent} ${opt.name} ${sub.name}`);
+        }
+      }
+    }
+  }
+}
 
 // Button handler for removing schedules
 export async function handleRemoveScheduleButton(interaction: ButtonInteraction) {
@@ -40,11 +57,11 @@ export default {
     .addSubcommand((sub) =>
       sub
         .setName("add")
-        .setDescription("Add a new scheduled task")
+        .setDescription("Add a new scheduled task for a command or message")
         .addStringOption((option) =>
           option
-            .setName("type")
-            .setDescription("Type of schedule (reminder, exercise, today, etc)")
+            .setName("name")
+            .setDescription("Label for this schedule (e.g., 'Morning Reminder')")
             .setRequired(true)
         )
         .addStringOption((option) =>
@@ -52,6 +69,7 @@ export default {
             .setName("frequency")
             .setDescription("Frequency: daily, weekly, monthly, every, custom")
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
@@ -62,8 +80,15 @@ export default {
         .addStringOption((option) =>
           option
             .setName("command")
-            .setDescription("Command to run (e.g., /today, /exercise pullup)")
-            .setRequired(true)
+            .setDescription("Command to run (e.g., /today, /exercise pullup). Leave empty if using 'message'.")
+            .setRequired(false)
+            .setAutocomplete(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("message")
+            .setDescription("Custom message to send (optional, overrides command if provided)")
+            .setRequired(false)
         )
         .addStringOption((option) =>
           option
@@ -82,6 +107,7 @@ export default {
             .setName("day")
             .setDescription("Day of week (for weekly) or day of month (for monthly)")
             .setRequired(false)
+            .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
@@ -94,6 +120,7 @@ export default {
             .setName("unit")
             .setDescription("Unit for 'every' frequency: days, weeks")
             .setRequired(false)
+            .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
@@ -128,16 +155,25 @@ export default {
     const subcommand = interaction.options.getSubcommand(true);
     try {
       if (subcommand === "add") {
-        const type = interaction.options.getString("type", true);
+        const name = interaction.options.getString("name", true);
         const frequency = interaction.options.getString("frequency", true);
         const time = interaction.options.getString("time", true);
-        const command = interaction.options.getString("command", true);
+        const command = interaction.options.getString("command") || undefined;
+        const message = interaction.options.getString("message") || undefined;
         let target_channel_id = interaction.options.getString("target_channel_id") || undefined;
         let target_user_id = interaction.options.getString("target_user_id") || undefined;
         const day = interaction.options.getString("day") || undefined;
         const interval = interaction.options.getString("interval") || undefined;
         const unit = interaction.options.getString("unit") || undefined;
         const cron_expression = interaction.options.getString("cron_expression") || undefined;
+
+        // Require at least one of command or message
+        if (!command && !message) {
+          await interaction.editReply({
+            content: "❌ Please provide either a command or a message to schedule.",
+          });
+          return;
+        }
 
         // Set default target if not provided
         if (!target_channel_id && !target_user_id) {
@@ -149,10 +185,11 @@ export default {
         }
 
         await addSchedule({
-          type,
+          name,
           frequency,
           time,
-          command,
+          command: command || "",
+          message: message || "",
           target_channel_id,
           target_user_id,
           is_active: true,
@@ -163,7 +200,7 @@ export default {
         });
         await startScheduler(interaction.client);
         await interaction.editReply({
-          content: `✅ Scheduled task:\n- Type: **${type}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- Command: \`${command}\`\n${day ? `- Day: ${day}\n` : ""}${interval ? `- Interval: ${interval}\n` : ""}${unit ? `- Unit: ${unit}\n` : ""}${cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""}${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${target_user_id ? `- User: <@${target_user_id}>\n` : ""}`,
+          content: `✅ Scheduled task:\n- Name: **${name}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- ${message ? `Message: \`${message}\`` : `Command: \`${command}\``}\n${day ? `- Day: ${day}\n` : ""}${interval ? `- Interval: ${interval}\n` : ""}${unit ? `- Unit: ${unit}\n` : ""}${cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""}${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${target_user_id ? `- User: <@${target_user_id}>\n` : ""}`,
         });
       } else if (subcommand === "list") {
         const schedules = (await getSchedules()).filter((s) => s.is_active);
@@ -179,7 +216,7 @@ export default {
           const section = new SectionBuilder()
             .addTextDisplayComponents(
               new TextDisplayBuilder().setContent(
-                `**${i + 1}.** [${s.type}] ${s.frequency} at ${s.time} — \`${s.command}\` (ID: \`${s.id}\`)${
+                `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${s.message ? `"${s.message}"` : `\`${s.command}\``} (ID: \`${s.id}\`)${
                   s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""
                 }${s.target_user_id ? ` (<@${s.target_user_id}>)` : ""}`
               )
@@ -227,5 +264,43 @@ export default {
         content: "Failed to manage schedules. Please try again later."
       });
     }
+  },
+  async autocomplete(interaction) {
+    const focusedOption = interaction.options.getFocused(true);
+    const value = focusedOption.value.toLowerCase();
+    let choices: string[] = [];
+    switch (focusedOption.name) {
+      case "frequency":
+        choices = ["daily", "weekly", "monthly", "every", "custom"];
+        break;
+      case "unit":
+        choices = ["days", "weeks"];
+        break;
+      case "command": {
+        // Show all commands and all subcommands together
+        const allCommands = Array.from(loadedCommands.values());
+        let allChoices: string[] = [];
+        for (const cmd of allCommands) {
+          allChoices.push(`/${cmd.data.name}`);
+          // Use .toJSON().options to get plain option objects with type info
+          const options = cmd.data.toJSON().options;
+          if (options) {
+            extractSubcommands(options, cmd.data.name, allChoices);
+          }
+        }
+        choices = allChoices;
+        break;
+      }
+      case "day":
+        choices = [
+          "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+          ...Array.from({ length: 31 }, (_, i) => `${i + 1}`)
+        ];
+        break;
+      default:
+        choices = [];
+    }
+    const filtered = choices.filter((c) => c.toLowerCase().includes(value)).slice(0, 25);
+    await interaction.respond(filtered.map((c) => ({ name: c, value: c })));
   },
 } as Command;

@@ -10,6 +10,7 @@ import { config } from "./config";
 import { loadCommands, commands } from "./utils/commandHandler";
 import { Command } from "./types/command";
 import { getButtonHandler } from "./utils/buttonHandlerRegistry";
+import { startScheduler } from "./utils/schedulerService";
 
 declare module "discord.js" {
   interface Client {
@@ -44,6 +45,8 @@ client.once(Events.ClientReady, async (readyClient) => {
   } catch (error) {
     console.error(`❌ Failed to register global slash commands:`, error);
   }
+  // Start scheduler after bot is ready
+  await startScheduler(client);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -54,6 +57,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await handler(interaction);
     } else {
       await interaction.reply({ content: "Unknown button.", ephemeral: true });
+    }
+    return;
+  }
+
+  // Handle autocomplete interactions
+  if (interaction.isAutocomplete()) {
+    const command = client.commands.get(interaction.commandName);
+    if (command && command.autocomplete) {
+      try {
+        await command.autocomplete(interaction);
+      } catch (error) {
+        console.error(`Error in autocomplete for command ${interaction.commandName}:`, error);
+      }
     }
     return;
   }
