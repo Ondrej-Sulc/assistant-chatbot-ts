@@ -1,10 +1,24 @@
 import cron, { ScheduledTask } from "node-cron";
 import { getSchedules, ScheduleRow } from "./sheetsService";
-import { executeCommandString } from "./commandExecutor";
-import { Client } from "discord.js";
+import { Client, ChannelType, TextChannel, ThreadChannel } from "discord.js";
 import { config } from "../config";
+import fs from "fs";
+import path from "path";
 
 const jobs: Record<string, ScheduledTask[]> = {};
+
+// --- DYNAMIC COMMAND LOADER ---
+const commandsDir = path.join(__dirname, "../commands");
+const coreCommands: Record<string, Function> = {};
+for (const file of fs.readdirSync(commandsDir)) {
+  if (!file.endsWith(".ts") && !file.endsWith(".js")) continue;
+  const cmd = require(path.join(commandsDir, file));
+  if (typeof cmd.core === "function") {
+    const name = path.basename(file, path.extname(file));
+    coreCommands[name] = cmd.core;
+  }
+}
+// --- END DYNAMIC COMMAND LOADER ---
 
 // Utility to convert Google Sheets time (fraction) to HH:mm
 function sheetTimeToHHmm(value: string): string {
@@ -76,6 +90,48 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
   return crons;
 }
 
+async function runScheduledCommand(commandString: string, params: any, client: Client, channelId: string | undefined, userId?: string) {
+  if (!channelId) {
+    console.warn(`[Scheduler] No channelId provided for scheduled command: ${commandString}`);
+    return;
+  }
+  // Parse command string: e.g. "/today" or "/exercise pushup"
+  const [cmdName, ...args] = commandString.replace(/^\//, "").split(" ");
+  const coreFn = coreCommands[cmdName];
+  if (!coreFn) {
+    console.warn(`[Scheduler] No core function for command: ${cmdName}`);
+    return;
+  }
+  // Call the core function with params
+  let result;
+  try {
+    result = await coreFn({ ...params, args, userId });
+  } catch (err) {
+    console.error(`[Scheduler] Error running core for ${cmdName}:`, err);
+    result = { content: `Failed to run scheduled command: ${cmdName}` };
+  }
+  // Send result to channel
+  const channel = await client.channels.fetch(channelId);
+  if (
+    channel &&
+    (channel.type === ChannelType.GuildText ||
+      channel.type === ChannelType.PublicThread ||
+      channel.type === ChannelType.PrivateThread)
+  ) {
+    const sendable = channel as TextChannel | ThreadChannel;
+    if (result.components && result.components.length > 0) {
+      await sendable.send({
+        content: result.content || undefined,
+        components: result.components,
+      });
+    } else {
+      await sendable.send(result.content || `Scheduled command ran: ${cmdName}`);
+    }
+  } else {
+    console.warn(`[Scheduler] Could not find text channel: ${channelId}`);
+  }
+}
+
 export async function startScheduler(client: Client) {
   // Stop any existing jobs
   Object.values(jobs).flat().forEach((job) => job.stop());
@@ -94,12 +150,16 @@ export async function startScheduler(client: Client) {
         cronExpr,
         async () => {
           console.log(`[Scheduler] Triggering schedule:`, schedule);
-          await executeCommandString({
-            commandString: schedule.command,
+          await runScheduledCommand(
+            schedule.command,
+            {
+              targetChannelId: schedule.target_channel_id,
+              targetUserId: schedule.target_user_id,
+            },
             client,
-            targetChannelId: schedule.target_channel_id,
-            targetUserId: schedule.target_user_id,
-          });
+            schedule.target_channel_id,
+            schedule.target_user_id
+          );
         },
         { timezone: config.TIMEZONE }
       );

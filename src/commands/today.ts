@@ -43,6 +43,85 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
 // Register the button handler
 registerButtonHandler("complete-task-", handleCompleteTask);
 
+// --- CORE LOGIC FUNCTION ---
+export async function core(params: { userId: string, ephemeral?: boolean }) {
+  try {
+    // TODO: Adjust filter for 'today' tasks
+    const response = await notionService.queryDatabase(
+      config.NOTION_TASKS_DATABASE_ID!,
+      {
+        filter: {
+          and: [
+            {
+              property: "Due",
+              date: {
+                past_month: {},
+              },
+            },
+            {
+              property: "Done",
+              checkbox: {
+                equals: false,
+              },
+            },
+          ],
+        },
+        page_size: 20,
+      }
+    );
+    if (!response.results.length) {
+      return {
+        content: "No tasks found for today!",
+        components: [],
+        isComponentsV2: false,
+      };
+    }
+
+    const container = new ContainerBuilder();
+    container.addTextDisplayComponents([
+      new TextDisplayBuilder().setContent("**Today's Tasks:**"),
+    ]);
+
+    response.results.forEach((page, index) => {
+      const properties = (page as Record<string, any>).properties;
+      const titleProp =
+        properties &&
+        Object.values(properties).find((prop: any) => prop.type === "title");
+      const title =
+        titleProp && titleProp.title && titleProp.title[0]
+          ? titleProp.title[0].plain_text
+          : page.id;
+
+      const section = new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`**${index + 1}.** ${title}`)
+        )
+        .setButtonAccessory(
+          new ButtonBuilder()
+            .setCustomId(`complete-task-${page.id}`)
+            .setEmoji("☑️")
+            .setStyle(ButtonStyle.Secondary)
+        );
+
+      container.addSectionComponents(section);
+    });
+
+    return {
+      content: null,
+      components: [container],
+      isComponentsV2: true,
+    };
+  } catch (error) {
+    console.error("/today core error:", error);
+    return {
+      content: "Failed to fetch today's tasks. Please try again later.",
+      components: [],
+      isComponentsV2: false,
+    };
+  }
+}
+// --- END CORE LOGIC ---
+
 export default {
   data: new SlashCommandBuilder()
     .setName("today")
@@ -50,75 +129,16 @@ export default {
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-    try {
-      // TODO: Adjust filter for 'today' tasks
-      const response = await notionService.queryDatabase(
-        config.NOTION_TASKS_DATABASE_ID!,
-        {
-          filter: {
-            and: [
-              {
-                property: "Due",
-                date: {
-                  past_month: {},
-                },
-              },
-              {
-                property: "Done",
-                checkbox: {
-                  equals: false,
-                },
-              },
-            ],
-          },
-          page_size: 20,
-        }
-      );
-      if (!response.results.length) {
-        await interaction.editReply({ content: "No tasks found for today!" });
-        return;
-      }
-
-      const container = new ContainerBuilder();
-
-      container.addTextDisplayComponents([
-        new TextDisplayBuilder().setContent("**Today's Tasks:**"),
-      ]);
-
-      // Create a section for each task
-      response.results.forEach((page, index) => {
-        // NotionPage is loosely typed, so treat as Record<string, any> for property access
-        const properties = (page as Record<string, any>).properties;
-        const titleProp =
-          properties &&
-          Object.values(properties).find((prop: any) => prop.type === "title");
-        const title =
-          titleProp && titleProp.title && titleProp.title[0]
-            ? titleProp.title[0].plain_text
-            : page.id;
-
-        const section = new SectionBuilder()
-          .addTextDisplayComponents(
-            new TextDisplayBuilder().setContent(`**${index + 1}.** ${title}`)
-          )
-          .setButtonAccessory(
-            new ButtonBuilder()
-              .setCustomId(`complete-task-${page.id}`)
-              .setEmoji("☑️")
-              .setStyle(ButtonStyle.Secondary)
-          );
-
-        container.addSectionComponents(section);
-      });
-
+    const result = await core({ userId: interaction.user.id, ephemeral: true });
+    if (result.components && result.components.length > 0) {
       await interaction.editReply({
-        flags: [MessageFlags.IsComponentsV2],
-        components: [container],
+        ...(result.isComponentsV2 ? { flags: MessageFlags.IsComponentsV2 } : {}),
+        components: result.components,
+        content: result.content || undefined,
       });
-    } catch (error) {
-      console.error("/today command error:", error);
+    } else {
       await interaction.editReply({
-        content: "Failed to fetch today's tasks. Please try again later.",
+        content: result.content,
       });
     }
   },
