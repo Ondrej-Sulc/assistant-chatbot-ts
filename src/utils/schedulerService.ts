@@ -106,10 +106,23 @@ async function runScheduledCommand(commandString: string, params: any, client: C
     console.warn(`[Scheduler] No core function for command: ${cmdName}`);
     return;
   }
-  // Call the core function with params
   let result;
   try {
-    result = await coreFn({ ...params, args, userId: targetUserId });
+    // Generalized mapping: if args are present, map to subcommand, amount, timeframe
+    let callParams = { ...params, args, userId: targetUserId };
+    if (Array.isArray(args) && args.length > 0) {
+      callParams = { ...params, userId: targetUserId };
+      callParams.subcommand = args[0];
+      if (args[1]) {
+        const n = parseInt(args[1], 10);
+        callParams.amount = !isNaN(n) ? n : args[1];
+      }
+      if (args[2]) {
+        callParams.timeframe = args[2];
+      }
+      callParams.args = args;
+    }
+    result = await coreFn(callParams);
   } catch (err) {
     console.error(`[Scheduler] Error running core for ${cmdName}:`, err);
     result = { content: `Failed to run scheduled command: ${cmdName}` };

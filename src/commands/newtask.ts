@@ -8,6 +8,51 @@ import { notionService } from "../utils/notionService";
 import { config } from "../config";
 import { parseNaturalDate } from "../utils/dateParser";
 
+// --- CORE LOGIC FUNCTION ---
+export async function core(params: {
+  userId: string,
+  title: string,
+  due?: string | null,
+}): Promise<{
+  content: string | null,
+}> {
+  try {
+    const { title, due } = params;
+    let dueDate: string | undefined;
+    if (due) {
+      const parsed = parseNaturalDate(due);
+      if (!parsed) {
+        return {
+          content: `❌ Could not understand due date: \`${due}\`. Use YYYY-MM-DD, today, tomorrow, or a weekday.`,
+        };
+      }
+      dueDate = parsed as string;
+    }
+    const properties: Record<string, any> = {
+      "Task": { title: [{ text: { content: title } }] },
+      "Inbox": { checkbox: true },
+      "Kanban - State": { select: { name: "To Do" } },
+      "Priority": { select: { name: "Medium" } },
+    };
+    if (dueDate) {
+      properties.Due = { date: { start: dueDate } };
+    }
+    await notionService.createPage({
+      parent: { database_id: config.NOTION_TASKS_DATABASE_ID! },
+      properties,
+    });
+    return {
+      content: `✅ Created new task: **${title}**${dueDate ? ` (Due: ${dueDate})` : ""}`,
+    };
+  } catch (error) {
+    console.error("/newtask core error:", error);
+    return {
+      content: "Failed to create new task. Please try again later.",
+    };
+  }
+}
+// --- END CORE LOGIC ---
+
 export default {
   data: new SlashCommandBuilder()
     .setName("newtask")
@@ -27,35 +72,13 @@ export default {
     try {
       const title = interaction.options.getString("title", true);
       const due = interaction.options.getString("due");
-      let dueDate: string | undefined;
-      if (due) {
-        const parsed = parseNaturalDate(due);
-        if (!parsed) {
-          await interaction.editReply({
-            content: `❌ Could not understand due date: \`${due}\`. Use YYYY-MM-DD, today, tomorrow, or a weekday.`,
-          });
-          return;
-        }
-        dueDate = parsed as string;
-      }
-      const properties: Record<string, any> = {
-        "Task": { title: [{ text: { content: title } }] },
-        "Inbox": { checkbox: true },
-        "Kanban - State": { select: { name: "To Do" } },
-        "Priority": { select: { name: "Medium" } },
-      };
-      if (dueDate) {
-        properties.Due = { date: { start: dueDate } };
-      }
-      // You can add more default properties here if needed
-      await notionService.createPage({
-        parent: { database_id: config.NOTION_TASKS_DATABASE_ID! },
-        properties,
+      const result = await core({
+        userId: interaction.user.id,
+        title,
+        due,
       });
       await interaction.editReply({
-        content: `✅ Created new task: **${title}**${
-          dueDate ? ` (Due: ${dueDate})` : ""
-        }`,
+        content: result.content || undefined,
       });
     } catch (error) {
       console.error("/newtask command error:", error);
