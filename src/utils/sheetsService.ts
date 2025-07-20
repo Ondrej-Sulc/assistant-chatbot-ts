@@ -1,6 +1,7 @@
 import { google, sheets_v4 } from "googleapis";
 import { JWT } from "google-auth-library";
 import { config } from "../config";
+import { readFileSync } from 'fs';
 
 // Type for Google service account credentials
 interface GoogleCredentials {
@@ -36,12 +37,13 @@ class SheetsService {
 
   // The constructor initializes the service by authenticating with Google.
   constructor() {
-    if (!config.GOOGLE_CREDENTIALS_JSON) {
+    if (!config.GOOGLE_CREDENTIALS_FILE) {
       throw new Error(
         "GOOGLE_CREDENTIALS_JSON is not defined in the .env file."
       );
     }
-    const credentials: GoogleCredentials = JSON.parse(config.GOOGLE_CREDENTIALS_JSON as string);
+    const credentialsFileContent = readFileSync(config.GOOGLE_CREDENTIALS_FILE, 'utf8');
+    const credentials= JSON.parse(credentialsFileContent);
     const scopes = ["https://www.googleapis.com/auth/spreadsheets"];
     const auth = new JWT({
       email: credentials.client_email,
