@@ -16,9 +16,11 @@ export async function loadCommands() {
         const filePath = join(commandsPath, file);
         try {
             const commandModule = await import(filePath);
-            const command: Command = commandModule.default;
+            const command: Command | undefined = (commandModule.default && typeof commandModule.default === 'object')
+                ? commandModule.default
+                : commandModule;
 
-            if ('data' in command && 'execute' in command) {
+            if (command && 'data' in command && 'execute' in command) {
                 commands.set(command.data.name, command);
                 console.log(`   ✅ Loaded command: /${command.data.name}`);
             } else {
