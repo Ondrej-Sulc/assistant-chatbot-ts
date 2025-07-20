@@ -41,7 +41,17 @@ class SheetsService {
         "GOOGLE_CREDENTIALS_JSON is not defined in the .env file."
       );
     }
-    const credentials: GoogleCredentials = JSON.parse(config.GOOGLE_CREDENTIALS_JSON as string);
+    let credentials;
+    try {
+      // Decode the Base64 string back to JSON string
+      const decodedCredentialsString = Buffer.from(config.GOOGLE_CREDENTIALS_JSON, 'base64').toString('utf8');
+      // Parse the decoded JSON string
+      credentials = JSON.parse(decodedCredentialsString);
+      console.log('Loaded Google credentials from Base64 environment variable.');
+    } catch (error) {
+      console.error(`Error loading/parsing Google credentials from environment variable:`, error);
+      throw new Error(`Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`);
+    }
     const scopes = ["https://www.googleapis.com/auth/spreadsheets"];
     const auth = new JWT({
       email: credentials.client_email,
