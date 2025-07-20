@@ -18,16 +18,20 @@ export async function loadCommands() {
             const commandModule = await import(filePath);
 
             let command: Command | undefined;
-            // Priority 1: Check if the module itself is the command (can happen with some compiled exports)
-            if (typeof commandModule === 'object' && 'data' in commandModule && 'execute' in commandModule) {
-                command = commandModule as Command;
-                console.log(`   💡 Found command as module root for: ${file}`);
-            } 
-            // Priority 2: Check for the '.default' property (most common for 'export default')
+            // This order is crucial. Try module.default.default first, then module.default, then module itself.
+            if (commandModule.default && typeof commandModule.default === 'object' && commandModule.default.default && typeof commandModule.default.default === 'object' && 'data' in commandModule.default.default && 'execute' in commandModule.default.default) {
+                command = commandModule.default.default as Command;
+                console.log(`   💡 Found command as module.default.default for: ${file}`);
+            }
             else if (commandModule.default && typeof commandModule.default === 'object' && 'data' in commandModule.default && 'execute' in commandModule.default) {
                 command = commandModule.default as Command;
                 console.log(`   💡 Found command as module.default for: ${file}`);
-            }
+            } 
+            else if (typeof commandModule === 'object' && 'data' in commandModule && 'execute' in commandModule) {
+                command = commandModule as Command;
+                console.log(`   💡 Found command as module root for: ${file}`);
+            } 
+            // --- END DEFINITIVE FIX ---
 
             if (command) {
                 commands.set(command.data.name, command);
@@ -35,9 +39,12 @@ export async function loadCommands() {
             } else {
                 console.warn(`   ⚠️ [WARNING] The command at ${filePath} is missing a required "data" or "execute" property, or its export structure is unexpected.`);
                 console.warn(`   Received module keys: ${JSON.stringify(Object.keys(commandModule))}`);
-                // Also log default and core properties if they exist for more insight
-                if (commandModule.default) console.warn(`   module.default keys: ${JSON.stringify(Object.keys(commandModule.default))}`);
-                if (commandModule.core) console.warn(`   module.core keys: ${JSON.stringify(Object.keys(commandModule.core))}`);
+                if (commandModule.default) {
+                    console.warn(`   module.default keys: ${JSON.stringify(Object.keys(commandModule.default))}`);
+                    if (commandModule.default.default) { // Log nested default if it exists
+                         console.warn(`   module.default.default content (if object): ${typeof commandModule.default.default === 'object' ? JSON.stringify(Object.keys(commandModule.default.default)) : commandModule.default.default}`);
+                    }
+                }
             }
         } catch (error) {
             console.error(`   ❌ Error loading command from ${filePath}:`, error);
