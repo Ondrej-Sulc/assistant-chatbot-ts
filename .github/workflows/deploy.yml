@@ -58,7 +58,7 @@ jobs:
           # Configure the service for a background worker
           flags: |
             --no-cpu-throttling
-            --set-startup-cpu-boost
+            --cpu-boost
             --min-instances=1
           # Pass your bot's secrets to Cloud Run as environment variables
           env_vars: |
