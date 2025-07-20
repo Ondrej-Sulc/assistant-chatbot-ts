@@ -11,7 +11,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GAR_LOCATION: europe-west1 # The region of your Artifact Registry
   SERVICE_NAME: discord-assistant-chatbot # The name of your Cloud Run service
-  IMAGE_NAME: discord-assistant-chatbot # The name of the Docker image
+  IMAGE_NAME: assistant-chatbot-ts # The name of the Docker image
 
 jobs:
   deploy:
