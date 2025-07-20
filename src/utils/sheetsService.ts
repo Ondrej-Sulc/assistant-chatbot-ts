@@ -47,7 +47,6 @@ class SheetsService {
       const decodedCredentialsString = Buffer.from(config.GOOGLE_CREDENTIALS_JSON, 'base64').toString('utf8');
       // Parse the decoded JSON string
       credentials = JSON.parse(decodedCredentialsString);
-      console.log('Loaded Google credentials from Base64 environment variable.');
     } catch (error) {
       console.error(`Error loading/parsing Google credentials from environment variable:`, error);
       throw new Error(`Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`);

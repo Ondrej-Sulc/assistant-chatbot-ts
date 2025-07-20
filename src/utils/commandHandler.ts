@@ -8,7 +8,7 @@ const commandsPath = join(__dirname, "..", "commands");
 export const commands = new Collection<string, Command>();
 
 export async function loadCommands() {
-    const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith(".ts"));
+    const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith(".js"));
 
     console.log(`🔎 Found ${commandFiles.length} command files.`);
 
