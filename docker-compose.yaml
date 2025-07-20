@@ -8,7 +8,6 @@ services:
       target: builder
     volumes:
       - ./src:/usr/src/app/src
-      - ./credentials.json:/secrets/google_credentials.json
     # Add this environment variable to enable polling
     environment:
       - CHOKIDAR_USEPOLLING=true
