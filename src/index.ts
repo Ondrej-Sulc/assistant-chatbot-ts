@@ -11,6 +11,7 @@ import { loadCommands, commands } from "./utils/commandHandler";
 import { Command } from "./types/command";
 import { getButtonHandler } from "./utils/buttonHandlerRegistry";
 import { startScheduler } from "./utils/schedulerService";
+import http from 'http';
 
 declare module "discord.js" {
   interface Client {
@@ -33,6 +34,16 @@ client.commands = commands;
 
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`✅ Bot connected as ${readyClient.user.username}`);
+
+  // We start a minimal HTTP server just for health checks.
+  const port = process.env.PORT || 8080;
+  http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is healthy and running!\n');
+  }).listen(port, () => {
+    console.log(`HTTP health check server listening on port ${port}`);
+  });
+
   await loadCommands();
   const commandData = Array.from(client.commands.values()).map((command) =>
     command.data.toJSON()

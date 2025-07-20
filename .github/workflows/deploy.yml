@@ -59,7 +59,6 @@ jobs:
             --no-cpu-throttling
             --cpu-boost
             --min-instances=1
-            --no-allow-unauthenticated
           # Pass your bot's secrets to Cloud Run as environment variables
           env_vars: |
             DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}
