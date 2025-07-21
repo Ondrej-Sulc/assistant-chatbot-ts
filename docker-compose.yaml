@@ -12,6 +12,7 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - NODE_OPTIONS=--openssl-legacy-provider
+      - NODE_ENV=development
     env_file:
       - ./.env
     # Override the default CMD to run the development script
