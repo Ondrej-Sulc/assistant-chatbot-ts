@@ -56,7 +56,8 @@ export function parseNaturalDate(input: string, now: Date = new Date()): string 
   }
 
   // Days of the week
-  const weekdayIdx = WEEKDAYS.indexOf(lower);
+  const weekdayText = lower.replace(/^next /u, "");
+  const weekdayIdx = WEEKDAYS.indexOf(weekdayText);
   if (weekdayIdx !== -1) {
     const todayIdx = now.getDay();
     let daysToAdd = (weekdayIdx - todayIdx + 7) % 7;

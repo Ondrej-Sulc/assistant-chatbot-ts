@@ -23,7 +23,7 @@ export async function core(params: {
       const parsed = parseNaturalDate(due);
       if (!parsed) {
         return {
-          content: `❌ Could not understand due date: \`${due}\`. Use YYYY-MM-DD, today, tomorrow, or a weekday.`,
+          content: `❌ Could not understand due date: \`${due}\`. Try 'tomorrow', 'next monday', or '2024-08-15'.`,
         };
       }
       dueDate = parsed as string;
@@ -63,7 +63,9 @@ export default {
     .addStringOption((option) =>
       option
         .setName("due")
-        .setDescription("Due date (YYYY-MM-DD, optional)")
+        .setDescription(
+          "Due date. e.g. 'tomorrow', 'next friday', '2024-08-15'"
+        )
         .setRequired(false)
     ),
 
