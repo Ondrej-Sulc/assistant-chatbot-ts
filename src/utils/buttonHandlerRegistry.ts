@@ -13,4 +13,4 @@ export function getButtonHandler(customId: string): ButtonHandler | undefined {
     if (customId.startsWith(prefix)) return handler;
   }
   return undefined;
-} 
+}

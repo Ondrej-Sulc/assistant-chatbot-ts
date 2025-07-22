@@ -1,6 +1,13 @@
 import cron, { ScheduledTask } from "node-cron";
 import { getSchedules, ScheduleRow } from "./sheetsService";
-import { Client, ChannelType, TextChannel, ThreadChannel, MessageFlags } from "discord.js";
+import {
+  Client,
+  ChannelType,
+  TextChannel,
+  ThreadChannel,
+  MessageFlags,
+  MessageCreateOptions,
+} from "discord.js";
 import { config } from "../config";
 import fs from "fs";
 import path from "path";
@@ -20,6 +27,17 @@ for (const file of fs.readdirSync(commandsDir)) {
 }
 // --- END DYNAMIC COMMAND LOADER ---
 
+// Types for scheduled command params and message options
+interface ScheduledCommandParams {
+  targetChannelId?: string;
+  targetUserId?: string;
+  subcommand?: string;
+  amount?: number | string;
+  timeframe?: string;
+  args?: string[];
+  [key: string]: any;
+}
+
 // Utility to convert Google Sheets time (fraction) to HH:mm
 function sheetTimeToHHmm(value: string): string {
   if (/^\d{1,2}:\d{2}$/.test(value)) return value; // already HH:mm
@@ -28,7 +46,9 @@ function sheetTimeToHHmm(value: string): string {
   const totalMinutes = Math.round(num * 24 * 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
 }
 
 function getCronExpressions(schedule: ScheduleRow): string[] {
@@ -38,7 +58,10 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
   }
 
   // Support multiple times per day (comma-separated)
-  const times = (schedule.time || "").split(",").map((t) => sheetTimeToHHmm(t.trim())).filter(Boolean);
+  const times = (schedule.time || "")
+    .split(",")
+    .map((t) => sheetTimeToHHmm(t.trim()))
+    .filter(Boolean);
   const crons: string[] = [];
 
   for (const time of times) {
@@ -51,7 +74,13 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
       case "weekly": {
         // day: e.g. "monday", "tuesday", ...
         const dayMap: Record<string, number> = {
-          sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6
+          sunday: 0,
+          monday: 1,
+          tuesday: 2,
+          wednesday: 3,
+          thursday: 4,
+          friday: 5,
+          saturday: 6,
         };
         const day = schedule.day ? schedule.day.toLowerCase() : "monday";
         const dayNum = dayMap[day] ?? 1;
@@ -66,14 +95,22 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
       }
       case "every": {
         // interval/unit: e.g. every 2 days, every 3 weeks
-        const interval = schedule.interval ? parseInt(schedule.interval, 10) : 1;
+        const interval = schedule.interval
+          ? parseInt(schedule.interval, 10)
+          : 1;
         const unit = schedule.unit || "days";
         if (unit === "days") {
           crons.push(`${minute} ${hour} */${interval} * *`);
         } else if (unit === "weeks") {
           // Run every N weeks on the specified day (default Monday)
           const dayMap: Record<string, number> = {
-            sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6
+            sunday: 0,
+            monday: 1,
+            tuesday: 2,
+            wednesday: 3,
+            thursday: 4,
+            friday: 5,
+            saturday: 6,
           };
           const day = schedule.day ? schedule.day.toLowerCase() : "monday";
           const dayNum = dayMap[day] ?? 1;
@@ -90,13 +127,21 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
   return crons;
 }
 
-async function runScheduledCommand(commandString: string, params: any, client: Client, channelId: string | undefined, userId?: string) {
+async function runScheduledCommand(
+  commandString: string,
+  params: ScheduledCommandParams,
+  client: Client,
+  channelId: string | undefined,
+  userId?: string
+) {
   // Decide where to send the message: DM to user or to channel
   const targetUserId = userId || params.targetUserId;
   const targetChannelId = channelId || params.targetChannelId;
 
   if (!targetUserId && !targetChannelId) {
-    console.warn(`[Scheduler] No target_user_id or target_channel_id provided for scheduled command: ${commandString}`);
+    console.warn(
+      `[Scheduler] No target_user_id or target_channel_id provided for scheduled command: ${commandString}`
+    );
     return;
   }
   // Parse command string: e.g. "/today" or "/exercise pushup"
@@ -106,10 +151,10 @@ async function runScheduledCommand(commandString: string, params: any, client: C
     console.warn(`[Scheduler] No core function for command: ${cmdName}`);
     return;
   }
-  let result;
+  let result: { content?: string; components?: any[]; files?: any[]; isComponentsV2?: boolean } = {};
   try {
     // Generalized mapping: if args are present, map to subcommand, amount, timeframe
-    let callParams = { ...params, args, userId: targetUserId };
+    let callParams: ScheduledCommandParams = { ...params, args, userId: targetUserId };
     if (Array.isArray(args) && args.length > 0) {
       callParams = { ...params, userId: targetUserId };
       callParams.subcommand = args[0];
@@ -133,11 +178,14 @@ async function runScheduledCommand(commandString: string, params: any, client: C
     try {
       const user = await client.users.fetch(targetUserId);
       if (user) {
-        const messageOptions: any = {};
+        const messageOptions: MessageCreateOptions = {};
         if (result.content) messageOptions.content = result.content;
-        if (result.components && result.components.length > 0) messageOptions.components = result.components;
-        if (result.isComponentsV2) messageOptions.flags = MessageFlags.IsComponentsV2;
-        if (Object.keys(messageOptions).length === 0) messageOptions.content = `Scheduled command ran: ${cmdName}`;
+        if (result.components && result.components.length > 0)
+          messageOptions.components = result.components;
+        if (result.isComponentsV2)
+          messageOptions.flags = MessageFlags.IsComponentsV2;
+        if (!messageOptions.content)
+          messageOptions.content = `Scheduled command ran: ${cmdName}`;
         await user.send(messageOptions);
         return;
       }
@@ -157,24 +205,39 @@ async function runScheduledCommand(commandString: string, params: any, client: C
           channel.type === ChannelType.PrivateThread)
       ) {
         const sendable = channel as TextChannel | ThreadChannel;
-        const messageOptions: any = {};
+        const messageOptions: MessageCreateOptions = {};
         if (result.content) messageOptions.content = result.content;
-        if (result.components && result.components.length > 0) messageOptions.components = result.components;
-        if (result.isComponentsV2) messageOptions.flags = MessageFlags.IsComponentsV2;
-        if (Object.keys(messageOptions).length === 0) messageOptions.content = `Scheduled command ran: ${cmdName}`;
+        if (result.components && result.components.length > 0)
+          messageOptions.components = result.components;
+        if (result.isComponentsV2)
+          messageOptions.flags = MessageFlags.IsComponentsV2;
+        if (!messageOptions.content)
+          messageOptions.content = `Scheduled command ran: ${cmdName}`;
         await sendable.send(messageOptions);
       } else {
-        console.warn(`[Scheduler] Could not find text channel: ${targetChannelId}`);
+        console.warn(
+          `[Scheduler] Could not find text channel: ${targetChannelId}`
+        );
       }
     } catch (err) {
-      console.warn(`[Scheduler] Error sending to channel: ${targetChannelId}`, err);
+      console.warn(
+        `[Scheduler] Error sending to channel: ${targetChannelId}`,
+        err
+      );
     }
   }
 }
 
-async function sendScheduledMessage(message: string, client: Client, channelId?: string, userId?: string) {
+async function sendScheduledMessage(
+  message: string,
+  client: Client,
+  channelId?: string,
+  userId?: string
+) {
   if (!userId && !channelId) {
-    console.warn(`[Scheduler] No target_user_id or target_channel_id provided for scheduled message: ${message}`);
+    console.warn(
+      `[Scheduler] No target_user_id or target_channel_id provided for scheduled message: ${message}`
+    );
     return;
   }
   if (userId) {
@@ -210,7 +273,9 @@ async function sendScheduledMessage(message: string, client: Client, channelId?:
 
 export async function startScheduler(client: Client) {
   // Stop any existing jobs
-  Object.values(jobs).flat().forEach((job) => job.stop());
+  Object.values(jobs)
+    .flat()
+    .forEach((job) => job.stop());
   Object.keys(jobs).forEach((id) => delete jobs[id]);
 
   const schedules = (await getSchedules()).filter((s) => s.is_active);
@@ -219,7 +284,11 @@ export async function startScheduler(client: Client) {
     jobs[schedule.id] = [];
     for (const cronExpr of cronExprs) {
       if (!cron.validate(cronExpr)) {
-        console.warn(`[Scheduler] Invalid cron for schedule:`, schedule, cronExpr);
+        console.warn(
+          `[Scheduler] Invalid cron for schedule:`,
+          schedule,
+          cronExpr
+        );
         continue;
       }
       const job = cron.schedule(
@@ -245,13 +314,18 @@ export async function startScheduler(client: Client) {
               schedule.target_user_id
             );
           } else {
-            console.warn(`[Scheduler] No command or message to run for schedule:`, schedule);
+            console.warn(
+              `[Scheduler] No command or message to run for schedule:`,
+              schedule
+            );
           }
         },
         { timezone: config.TIMEZONE }
       );
       jobs[schedule.id].push(job);
-      console.log(`[Scheduler] Scheduled: ${schedule.name} (${cronExpr}) [${schedule.id}]`);
+      console.log(
+        `[Scheduler] Scheduled: ${schedule.name} (${cronExpr}) [${schedule.id}]`
+      );
     }
   }
-} 
+}

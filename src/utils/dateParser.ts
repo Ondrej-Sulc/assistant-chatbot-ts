@@ -2,10 +2,19 @@
 // Supports: today, tomorrow, monday, tuesday, ..., sunday, and YYYY-MM-DD
 
 const WEEKDAYS = [
-  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
 ];
 
-export function parseNaturalDate(input: string, now: Date = new Date()): string | null {
+export function parseNaturalDate(
+  input: string,
+  now: Date = new Date()
+): string | null {
   if (!input) return null;
   const lower = input.trim().toLowerCase();
 
@@ -68,4 +77,4 @@ export function parseNaturalDate(input: string, now: Date = new Date()): string 
   }
 
   return null;
-} 
+}

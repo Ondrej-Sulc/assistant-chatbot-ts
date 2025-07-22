@@ -19,13 +19,20 @@ import { sheetsService } from "../utils/sheetsService";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { formatDate } from "../utils/dateUtils";
 import QuickChart from "quickchart-js";
+import { handleError, safeReply } from "../utils/errorHandler";
 
 const EXERCISE_SHEET_ID = config.EXERCISE_SHEET_ID;
 const EXERCISE_SHEET_NAME = "Logs";
 const SHEET_RANGE = `${EXERCISE_SHEET_NAME}!A:D`;
-const SHEET_COL_PUSHUP = 2; // C
-const SHEET_COL_PULLUP = 3; // D
 const DEFAULT_TIMEZONE = config.TIMEZONE || "Europe/Prague";
+
+function mapSheetRowsToExerciseSheetRows(rows: any[][]): ExerciseSheetRow[] {
+  return rows.map((row) => ({
+    date: row[0] as string,
+    pushups: parseInt(row[2] || "0", 10),
+    pullups: parseInt(row[3] || "0", 10),
+  }));
+}
 
 // Utility to log exercise reps for today
 async function logExercise(exerciseType: ExerciseType, amount: number) {
@@ -34,33 +41,30 @@ async function logExercise(exerciseType: ExerciseType, amount: number) {
     const todayStr = formatDate(now, DEFAULT_TIMEZONE);
 
     // Read all rows from the sheet
-    let rows =
-      (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
+    let rawRows = (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
+    let rows: ExerciseSheetRow[] = mapSheetRowsToExerciseSheetRows(rawRows);
     // Find today's row (by column A)
-    let todayRowIdx = rows.findIndex((row) => row[0] === todayStr);
+    let todayRowIdx = rows.findIndex((row) => row.date === todayStr);
     if (todayRowIdx === -1) {
       // Row for today not found, append it (leave column B blank)
-      const newRow = [todayStr, "", 0, 0];
+      const newRow: ExerciseSheetRow = { date: todayStr, pushups: 0, pullups: 0 };
       rows.push(newRow);
       todayRowIdx = rows.length - 1;
     }
     // Update the correct cell (C or D)
     const row = rows[todayRowIdx];
-    const colIdx =
-      exerciseType === ExerciseType.Pushup
-        ? SHEET_COL_PUSHUP
-        : SHEET_COL_PULLUP;
-    const prev = parseInt(row[colIdx] || "0", 10);
-    row[colIdx] = prev + amount;
+    if (exerciseType === "pushup") {
+      row.pushups += amount;
+    } else {
+      row.pullups += amount;
+    }
     rows[todayRowIdx] = row;
     // Write back only the updated row (A, B, C, D)
-    const writeRange = `${EXERCISE_SHEET_NAME}!A${todayRowIdx + 1}:D${
-      todayRowIdx + 1
-    }`;
-    await sheetsService.writeSheet(EXERCISE_SHEET_ID, writeRange, [row]);
+    const writeRange = `${EXERCISE_SHEET_NAME}!A${todayRowIdx + 1}:D${todayRowIdx + 1}`;
+    await sheetsService.writeSheet(EXERCISE_SHEET_ID, writeRange, [[row.date, "", row.pushups, row.pullups]]);
   } catch (error) {
-    console.error("Failed to log exercise:", error);
-    throw new Error("Failed to log exercise. Please try again later.");
+    const { userMessage } = handleError(error, { location: "logExercise" });
+    throw new Error(userMessage);
   }
 }
 
@@ -85,11 +89,11 @@ export async function handleButton(interaction: ButtonInteraction) {
       flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
-    console.error("Button handler error:", error);
-    await safeReply(
-      interaction,
-      "Failed to log exercise. Please try again later."
-    );
+    const { userMessage, errorId } = handleError(error, {
+      location: "button:exercise",
+      userId: interaction.user?.id,
+    });
+    await safeReply(interaction, userMessage, errorId);
   }
 }
 
@@ -101,44 +105,29 @@ const SUBCOMMAND_PUSHUP = "pushup";
 const SUBCOMMAND_PULLUP = "pullup";
 const SUBCOMMAND_STATS = "stats";
 
-// Centralized error reply
-async function safeReply(
-  interaction: ChatInputCommandInteraction | ButtonInteraction,
-  content: string
-) {
-  if (!interaction.replied) {
-    await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
-  }
-}
-
 // --- CORE LOGIC FUNCTION ---
 export async function core(params: {
-  userId: string,
-  subcommand: string,
-  amount?: number | null,
-  timeframe?: string | null,
+  userId: string;
+  subcommand: string;
+  amount?: number | null;
+  timeframe?: string | null;
 }): Promise<{
-  content: string | null,
-  components?: any[],
-  files?: any[],
-  isComponentsV2?: boolean,
+  content: string | null;
+  components?: any[];
+  files?: any[];
+  isComponentsV2?: boolean;
 }> {
   try {
     const { subcommand, amount, timeframe } = params;
     // --- STATS SUBCOMMAND ---
     if (subcommand === SUBCOMMAND_STATS) {
       // Read all rows from the sheet
-      let rows: any[] = [];
-      try {
-        rows = (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
-      } catch (error) {
-        console.error("Failed to read exercise sheet:", error);
-        return { content: "Failed to load stats. Please try again later." };
-      }
+      let rawRows = (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
+      let rows: ExerciseSheetRow[] = mapSheetRowsToExerciseSheetRows(rawRows);
       // Remove header if present (assume header if first row is not a date)
       if (
         rows.length &&
-        isNaN(Date.parse(rows[0][0]?.split("/").reverse().join("-")))
+        isNaN(Date.parse(rows[0].date?.split("/").reverse().join("-")))
       ) {
         rows = rows.slice(1);
       }
@@ -146,12 +135,12 @@ export async function core(params: {
       const todayStr = formatDate(now, DEFAULT_TIMEZONE);
       // If no timeframe, show today's stats
       if (!timeframe) {
-        const todayRow = rows.find((row) => row[0] === todayStr);
+        const todayRow = rows.find((row) => row.date === todayStr);
         let pushups = 0;
         let pullups = 0;
         if (todayRow) {
-          pushups = parseInt(todayRow[SHEET_COL_PUSHUP] || "0", 10);
-          pullups = parseInt(todayRow[SHEET_COL_PULLUP] || "0", 10);
+          pushups = todayRow.pushups;
+          pullups = todayRow.pullups;
         }
         const message =
           `**Exercise Stats for Today (${todayStr})**\n\n` +
@@ -169,16 +158,16 @@ export async function core(params: {
       const days = daysMap[timeframe] || 7;
       const MAX_POINTS = 60;
       // Find today's row index
-      let todayIdx = rows.findIndex((row) => row[0] === todayStr);
+      let todayIdx = rows.findIndex((row) => row.date === todayStr);
       if (todayIdx === -1) {
         todayIdx = rows.length - 1;
       }
       const startIdx = Math.max(0, todayIdx - days + 1);
       const selectedRows = rows.slice(startIdx, todayIdx + 1);
       const data = selectedRows.map((row) => ({
-        date: row[0],
-        pushups: parseInt(row[SHEET_COL_PUSHUP] || "0", 10),
-        pullups: parseInt(row[SHEET_COL_PULLUP] || "0", 10),
+        date: row.date,
+        pushups: row.pushups,
+        pullups: row.pullups,
       }));
       let chartData: ExerciseSheetRow[] = [];
       if (data.length > MAX_POINTS) {
@@ -203,9 +192,17 @@ export async function core(params: {
       const labels = chartData.map((row) => row.date);
       const pushups = chartData.map((row) => row.pushups);
       const pullups = chartData.map((row) => row.pullups);
-      const chartLabel = `${labels.length < days ? `Last ${labels.length}` : `Last ${days}`} days`;
-      const avgPushups = pushups.length > 0 ? Math.round(pushups.reduce((a, b) => a + b, 0) / pushups.length) : 0;
-      const avgPullups = pullups.length > 0 ? Math.round(pullups.reduce((a, b) => a + b, 0) / pullups.length) : 0;
+      const chartLabel = `${
+        labels.length < days ? `Last ${labels.length}` : `Last ${days}`
+      } days`;
+      const avgPushups =
+        pushups.length > 0
+          ? Math.round(pushups.reduce((a, b) => a + b, 0) / pushups.length)
+          : 0;
+      const avgPullups =
+        pullups.length > 0
+          ? Math.round(pullups.reduce((a, b) => a + b, 0) / pullups.length)
+          : 0;
       // Create chart config
       const chart = new QuickChart();
       chart.setConfig({
@@ -265,7 +262,7 @@ export async function core(params: {
               borderColor: "#4fd1c5",
               borderWidth: 1,
               callbacks: {
-                label: function(context: any) {
+                label: function (context: any) {
                   return `${context.dataset.label}: ${context.parsed.y}`;
                 },
               },
@@ -273,35 +270,35 @@ export async function core(params: {
             annotation: {
               annotations: {
                 avgPushups: {
-                  type: 'line',
+                  type: "line",
                   yMin: avgPushups,
                   yMax: avgPushups,
-                  borderColor: '#4fd1c5',
+                  borderColor: "#4fd1c5",
                   borderWidth: 2,
                   borderDash: [4, 4],
                   label: {
-                    content: 'Avg Pushups',
+                    content: "Avg Pushups",
                     enabled: true,
-                    position: 'end',
-                    color: '#4fd1c5',
+                    position: "end",
+                    color: "#4fd1c5",
                     font: { size: 14 },
-                    backgroundColor: '#23272a',
+                    backgroundColor: "#23272a",
                   },
                 },
                 avgPullups: {
-                  type: 'line',
+                  type: "line",
                   yMin: avgPullups,
                   yMax: avgPullups,
-                  borderColor: '#f6ad55',
+                  borderColor: "#f6ad55",
                   borderWidth: 2,
                   borderDash: [4, 4],
                   label: {
-                    content: 'Avg Pullups',
+                    content: "Avg Pullups",
                     enabled: true,
-                    position: 'end',
-                    color: '#f6ad55',
+                    position: "end",
+                    color: "#f6ad55",
                     font: { size: 14 },
-                    backgroundColor: '#23272a',
+                    backgroundColor: "#23272a",
                   },
                 },
               },
@@ -335,8 +332,10 @@ export async function core(params: {
         const attachmentName = "exercise-stats.png";
         const totalPushups = data.reduce((sum, r) => sum + r.pushups, 0);
         const totalPullups = data.reduce((sum, r) => sum + r.pullups, 0);
-        const avgPushupsVal = data.length > 0 ? Math.round(totalPushups / data.length) : 0;
-        const avgPullupsVal = data.length > 0 ? Math.round(totalPullups / data.length) : 0;
+        const avgPushupsVal =
+          data.length > 0 ? Math.round(totalPushups / data.length) : 0;
+        const avgPullupsVal =
+          data.length > 0 ? Math.round(totalPullups / data.length) : 0;
         const statsSummary =
           `**Stats for ${chartLabel}:**\n` +
           `\n` +
@@ -365,16 +364,16 @@ export async function core(params: {
       }
     }
     // --- PUSHUP/PULLUP SUBCOMMANDS ---
-    if (
-      subcommand === SUBCOMMAND_PUSHUP ||
-      subcommand === SUBCOMMAND_PULLUP
-    ) {
+    if (subcommand === SUBCOMMAND_PUSHUP || subcommand === SUBCOMMAND_PULLUP) {
       const exerciseType = subcommand as ExerciseType;
-      const exerciseName = exerciseType.charAt(0).toUpperCase() + exerciseType.slice(1);
+      const exerciseName =
+        exerciseType.charAt(0).toUpperCase() + exerciseType.slice(1);
       if (amount && amount > 0) {
         await logExercise(exerciseType, amount);
         return {
-          content: `Logged ${amount} ${exerciseName}${amount === 1 ? "" : "s"} for today!`,
+          content: `Logged ${amount} ${exerciseName}${
+            amount === 1 ? "" : "s"
+          } for today!`,
         };
       }
       // Interactive V2 component (for Discord only, but safe to return)
@@ -405,8 +404,11 @@ export async function core(params: {
     }
     return { content: "Unknown subcommand." };
   } catch (error) {
-    console.error("Exercise core error:", error);
-    return { content: "An error occurred. Please try again later." };
+    const { userMessage } = handleError(error, {
+      location: `command:exercise:${params.subcommand}`,
+      userId: params.userId,
+    });
+    return { content: userMessage };
   }
 }
 // --- END CORE LOGIC ---
@@ -468,14 +470,18 @@ export default {
       });
       if (result.files && result.files.length > 0) {
         await interaction.reply({
-          ...(result.isComponentsV2 ? { flags: [MessageFlags.IsComponentsV2] } : {}),
+          ...(result.isComponentsV2
+            ? { flags: [MessageFlags.IsComponentsV2] }
+            : {}),
           components: result.components,
           content: result.content || undefined,
           files: result.files,
         });
       } else if (result.components && result.components.length > 0) {
         await interaction.reply({
-          ...(result.isComponentsV2 ? { flags: [MessageFlags.IsComponentsV2] } : {}),
+          ...(result.isComponentsV2
+            ? { flags: [MessageFlags.IsComponentsV2] }
+            : {}),
           components: result.components,
           content: result.content || undefined,
         });
@@ -485,11 +491,11 @@ export default {
         });
       }
     } catch (error) {
-      console.error("Exercise command error:", error);
-      await safeReply(
-        interaction,
-        "An error occurred. Please try again later."
-      );
+      const { userMessage, errorId } = handleError(error, {
+        location: "command:exercise",
+        userId: interaction.user.id,
+      });
+      await safeReply(interaction, userMessage, errorId);
     }
   },
 } as Command;

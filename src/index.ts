@@ -11,7 +11,8 @@ import { loadCommands, commands } from "./utils/commandHandler";
 import { Command } from "./types/command";
 import { getButtonHandler } from "./utils/buttonHandlerRegistry";
 import { startScheduler } from "./utils/schedulerService";
-import http from 'http';
+import http from "http";
+import { handleError, safeReply } from "./utils/errorHandler";
 
 declare module "discord.js" {
   interface Client {
@@ -37,12 +38,14 @@ client.once(Events.ClientReady, async (readyClient) => {
 
   // We start a minimal HTTP server just for health checks.
   const port = process.env.PORT || 8080;
-  http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot is healthy and running!\n');
-  }).listen(port, () => {
-    console.log(`HTTP health check server listening on port ${port}`);
-  });
+  http
+    .createServer((req, res) => {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("Bot is healthy and running!\n");
+    })
+    .listen(port, () => {
+      console.log(`HTTP health check server listening on port ${port}`);
+    });
 
   await loadCommands();
   const commandData = Array.from(client.commands.values()).map((command) =>
@@ -65,9 +68,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.isButton()) {
     const handler = getButtonHandler(interaction.customId);
     if (handler) {
-      await handler(interaction);
+      try {
+        await handler(interaction);
+      } catch (error) {
+        const { userMessage, errorId } = handleError(error, {
+          location: `button:${interaction.customId}`,
+          userId: interaction.user?.id,
+        });
+        await safeReply(interaction, userMessage, errorId);
+      }
     } else {
-      await interaction.reply({ content: "Unknown button.", ephemeral: true });
+      await safeReply(interaction, "Unknown button.");
     }
     return;
   }
@@ -79,45 +90,48 @@ client.on(Events.InteractionCreate, async (interaction) => {
       try {
         await command.autocomplete(interaction);
       } catch (error) {
-        console.error(`Error in autocomplete for command ${interaction.commandName}:`, error);
+        handleError(error, {
+          location: `autocomplete:${interaction.commandName}`,
+          userId: interaction.user?.id,
+        });
+        // No user feedback for autocomplete errors
       }
     }
     return;
   }
 
   if (!interaction.isChatInputCommand()) return;
-  
-    const command = client.commands.get(interaction.commandName);
-  
-    if (!command) {
-      console.error(`No command matching ${interaction.commandName} was found.`);
-      return;
-    }
-  
-    try {
-      await command.execute(interaction);
-    } catch (error) {
-      console.error(`Error executing command ${interaction.commandName}:`, error);
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({
-          content: "There was an error while executing this command!",
-          flags: [],
-        });
-      } else {
-        await interaction.reply({
-          content: "There was an error while executing this command!",
-          flags: [MessageFlags.Ephemeral],
-        });
+
+  const command = client.commands.get(interaction.commandName);
+
+  if (!command) {
+    handleError(
+      new Error(`No command matching ${interaction.commandName} was found.`),
+      {
+        location: `command:${interaction.commandName}`,
+        userId: interaction.user?.id,
       }
-    }
-  });
-  
-  if (!config.BOT_TOKEN) {
-    throw new Error("DISCORD_BOT_TOKEN is not defined in the .env file.");
+    );
+    return;
   }
+
   try {
-    client.login(config.BOT_TOKEN);
+    await command.execute(interaction);
   } catch (error) {
-    console.error("Failed to login to Discord:", error);
-    process.exit(1);
+    const { userMessage, errorId } = handleError(error, {
+      location: `command:${interaction.commandName}`,
+      userId: interaction.user?.id,
+    });
+    await safeReply(interaction, userMessage, errorId);
   }
+});
+
+if (!config.BOT_TOKEN) {
+  throw new Error("DISCORD_BOT_TOKEN is not defined in the .env file.");
+}
+try {
+  client.login(config.BOT_TOKEN);
+} catch (error) {
+  console.error("Failed to login to Discord:", error);
+  process.exit(1);
+}

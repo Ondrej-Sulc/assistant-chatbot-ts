@@ -13,6 +13,7 @@ import { Command } from "../types/command";
 import { notionService } from "../utils/notionService";
 import { config } from "../config";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
+import { handleError, safeReply } from "../utils/errorHandler";
 
 // Button handler for completing tasks
 export async function handleCompleteTask(interaction: ButtonInteraction) {
@@ -32,11 +33,11 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
       flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
-    console.error("Complete task button error:", error);
-    await interaction.reply({
-      content: "Failed to mark task as complete. Please try again later.",
-      flags: [MessageFlags.Ephemeral],
+    const { userMessage, errorId } = handleError(error, {
+      location: "button:today:complete-task",
+      userId: interaction.user?.id,
     });
+    await safeReply(interaction, userMessage, errorId);
   }
 }
 
@@ -44,7 +45,7 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
 registerButtonHandler("complete-task-", handleCompleteTask);
 
 // --- CORE LOGIC FUNCTION ---
-export async function core(params: { userId: string, ephemeral?: boolean }) {
+export async function core(params: { userId: string; ephemeral?: boolean }) {
   try {
     // TODO: Adjust filter for 'today' tasks
     const response = await notionService.queryDatabase(
@@ -112,9 +113,12 @@ export async function core(params: { userId: string, ephemeral?: boolean }) {
       isComponentsV2: true,
     };
   } catch (error) {
-    console.error("/today core error:", error);
+    const { userMessage } = handleError(error, {
+      location: "command:today",
+      userId: params.userId,
+    });
     return {
-      content: "Failed to fetch today's tasks. Please try again later.",
+      content: userMessage,
       components: [],
       isComponentsV2: false,
     };
@@ -132,7 +136,9 @@ export default {
     const result = await core({ userId: interaction.user.id, ephemeral: true });
     if (result.components && result.components.length > 0) {
       await interaction.editReply({
-        ...(result.isComponentsV2 ? { flags: MessageFlags.IsComponentsV2 } : {}),
+        ...(result.isComponentsV2
+          ? { flags: MessageFlags.IsComponentsV2 }
+          : {}),
         components: result.components,
         content: result.content || undefined,
       });

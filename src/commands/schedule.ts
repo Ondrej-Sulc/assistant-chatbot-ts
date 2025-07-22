@@ -10,20 +10,29 @@ import {
   ButtonInteraction,
 } from "discord.js";
 import { Command } from "../types/command";
-import { addSchedule, getSchedules, deleteSchedule } from "../utils/sheetsService";
+import {
+  addSchedule,
+  getSchedules,
+  deleteSchedule,
+} from "../utils/sheetsService";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { startScheduler } from "../utils/schedulerService";
 import { commands as loadedCommands } from "../utils/commandHandler";
+import { handleError, safeReply } from "../utils/errorHandler";
 
 // Helper to recursively extract subcommands and subcommand groups from a command's options
-function extractSubcommands(options: any[], parent: string, allChoices: string[]) {
+function extractSubcommands(
+  options: any[],
+  parent: string,
+  allChoices: string[]
+) {
   for (const opt of options) {
-    if (opt.type === 1 && typeof opt.name === 'string') {
+    if (opt.type === 1 && typeof opt.name === "string") {
       allChoices.push(`/${parent} ${opt.name}`);
     } else if (opt.type === 2 && Array.isArray(opt.options)) {
       // Subcommand group
       for (const sub of opt.options) {
-        if (sub.type === 1 && typeof sub.name === 'string') {
+        if (sub.type === 1 && typeof sub.name === "string") {
           allChoices.push(`/${parent} ${opt.name} ${sub.name}`);
         }
       }
@@ -32,7 +41,9 @@ function extractSubcommands(options: any[], parent: string, allChoices: string[]
 }
 
 // Button handler for removing schedules
-export async function handleRemoveScheduleButton(interaction: ButtonInteraction) {
+export async function handleRemoveScheduleButton(
+  interaction: ButtonInteraction
+) {
   try {
     const scheduleId = interaction.customId.replace("remove-schedule-", "");
     await deleteSchedule(scheduleId);
@@ -41,11 +52,11 @@ export async function handleRemoveScheduleButton(interaction: ButtonInteraction)
       flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
-    console.error("Remove schedule button error:", error);
-    await interaction.reply({
-      content: "Failed to remove schedule. Please try again later.",
-      flags: [MessageFlags.Ephemeral],
+    const { userMessage, errorId } = handleError(error, {
+      location: "button:schedule:remove",
+      userId: interaction.user?.id,
     });
+    await safeReply(interaction, userMessage, errorId);
   }
 }
 registerButtonHandler("remove-schedule-", handleRemoveScheduleButton);
@@ -61,7 +72,9 @@ export default {
         .addStringOption((option) =>
           option
             .setName("name")
-            .setDescription("Label for this schedule (e.g., 'Morning Reminder')")
+            .setDescription(
+              "Label for this schedule (e.g., 'Morning Reminder')"
+            )
             .setRequired(true)
         )
         .addStringOption((option) =>
@@ -80,14 +93,18 @@ export default {
         .addStringOption((option) =>
           option
             .setName("command")
-            .setDescription("Command to run (e.g., /today, /exercise pullup). Leave empty if using 'message'.")
+            .setDescription(
+              "Command to run (e.g., /today, /exercise pullup). Leave empty if using 'message'."
+            )
             .setRequired(false)
             .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
             .setName("message")
-            .setDescription("Custom message to send (optional, overrides command if provided)")
+            .setDescription(
+              "Custom message to send (optional, overrides command if provided)"
+            )
             .setRequired(false)
         )
         .addStringOption((option) =>
@@ -105,7 +122,9 @@ export default {
         .addStringOption((option) =>
           option
             .setName("day")
-            .setDescription("Day of week (for weekly) or day of month (for monthly)")
+            .setDescription(
+              "Day of week (for weekly) or day of month (for monthly)"
+            )
             .setRequired(false)
             .setAutocomplete(true)
         )
@@ -145,7 +164,9 @@ export default {
         .addIntegerOption((option) =>
           option
             .setName("number")
-            .setDescription("List number of the schedule to remove (see /schedule list)")
+            .setDescription(
+              "List number of the schedule to remove (see /schedule list)"
+            )
             .setRequired(false)
         )
     ),
@@ -160,24 +181,32 @@ export default {
         const time = interaction.options.getString("time", true);
         const command = interaction.options.getString("command") || undefined;
         const message = interaction.options.getString("message") || undefined;
-        let target_channel_id = interaction.options.getString("target_channel_id") || undefined;
-        let target_user_id = interaction.options.getString("target_user_id") || undefined;
+        let target_channel_id =
+          interaction.options.getString("target_channel_id") || undefined;
+        let target_user_id =
+          interaction.options.getString("target_user_id") || undefined;
         const day = interaction.options.getString("day") || undefined;
         const interval = interaction.options.getString("interval") || undefined;
         const unit = interaction.options.getString("unit") || undefined;
-        const cron_expression = interaction.options.getString("cron_expression") || undefined;
+        const cron_expression =
+          interaction.options.getString("cron_expression") || undefined;
 
         // Require at least one of command or message
         if (!command && !message) {
-          await interaction.editReply({
-            content: "❌ Please provide either a command or a message to schedule.",
-          });
+          await safeReply(
+            interaction,
+            "❌ Please provide either a command or a message to schedule."
+          );
           return;
         }
 
         // Set default target if not provided
         if (!target_channel_id && !target_user_id) {
-          if (interaction.channel && interaction.channel.isTextBased() && interaction.guildId) {
+          if (
+            interaction.channel &&
+            interaction.channel.isTextBased() &&
+            interaction.guildId
+          ) {
             target_channel_id = interaction.channelId;
           } else {
             target_user_id = interaction.user.id;
@@ -199,24 +228,37 @@ export default {
           cron_expression,
         });
         await startScheduler(interaction.client);
-        await interaction.editReply({
-          content: `✅ Scheduled task:\n- Name: **${name}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- ${message ? `Message: \`${message}\`` : `Command: \`${command}\``}\n${day ? `- Day: ${day}\n` : ""}${interval ? `- Interval: ${interval}\n` : ""}${unit ? `- Unit: ${unit}\n` : ""}${cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""}${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${target_user_id ? `- User: <@${target_user_id}>\n` : ""}`,
-        });
+        await safeReply(
+          interaction,
+          `✅ Scheduled task:\n- Name: **${name}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- ${
+            message ? `Message: \`${message}\`` : `Command: \`${command}\``
+          }\n${day ? `- Day: ${day}\n` : ""}${
+            interval ? `- Interval: ${interval}\n` : ""
+          }${unit ? `- Unit: ${unit}\n` : ""}${
+            cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""
+          }${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${
+            target_user_id ? `- User: <@${target_user_id}>\n` : ""
+          }`
+        );
       } else if (subcommand === "list") {
         const schedules = (await getSchedules()).filter((s) => s.is_active);
         if (!schedules.length) {
-          await interaction.editReply({ content: "No active schedules found." });
+          await safeReply(interaction, "No active schedules found.");
           return;
         }
         const container = new ContainerBuilder();
-        const header = new TextDisplayBuilder().setContent("**Active Schedules:**");
+        const header = new TextDisplayBuilder().setContent(
+          "**Active Schedules:**"
+        );
         container.addTextDisplayComponents(header);
 
         schedules.forEach((s, i) => {
           const section = new SectionBuilder()
             .addTextDisplayComponents(
               new TextDisplayBuilder().setContent(
-                `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${s.message ? `"${s.message}"` : `\`${s.command}\``} (ID: \`${s.id}\`)${
+                `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${
+                  s.message ? `"${s.message}"` : `\`${s.command}\``
+                } (ID: \`${s.id}\`)${
                   s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""
                 }${s.target_user_id ? ` (<@${s.target_user_id}>)` : ""}`
               )
@@ -239,30 +281,34 @@ export default {
         if (!id && number) {
           const schedules = (await getSchedules()).filter((s) => s.is_active);
           if (number < 1 || number > schedules.length) {
-            await interaction.editReply({
-              content: `❌ Invalid schedule number. Use /schedule list to see numbers.`,
-            });
+            await safeReply(
+              interaction,
+              `❌ Invalid schedule number. Use /schedule list to see numbers.`
+            );
             return;
           }
           id = schedules[number - 1].id;
         }
         if (!id) {
-          await interaction.editReply({
-            content: `❌ Please provide either an ID or a list number.`,
-          });
+          await safeReply(
+            interaction,
+            `❌ Please provide either an ID or a list number.`
+          );
           return;
         }
         await deleteSchedule(id);
         await startScheduler(interaction.client);
-        await interaction.editReply({
-          content: `🗑️ Schedule with ID \`${id}\` has been removed (set inactive).`,
-        });
+        await safeReply(
+          interaction,
+          `🗑️ Schedule with ID \`${id}\` has been removed (set inactive).`
+        );
       }
     } catch (error) {
-      console.error("Schedule command error:", error);
-      await interaction.editReply({
-        content: "Failed to manage schedules. Please try again later."
+      const { userMessage, errorId } = handleError(error, {
+        location: "command:schedule:execute",
+        userId: interaction.user?.id,
       });
+      await safeReply(interaction, userMessage, errorId);
     }
   },
   async autocomplete(interaction) {
@@ -293,14 +339,22 @@ export default {
       }
       case "day":
         choices = [
-          "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-          ...Array.from({ length: 31 }, (_, i) => `${i + 1}`)
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+          ...Array.from({ length: 31 }, (_, i) => `${i + 1}`),
         ];
         break;
       default:
         choices = [];
     }
-    const filtered = choices.filter((c) => c.toLowerCase().includes(value)).slice(0, 25);
+    const filtered = choices
+      .filter((c) => c.toLowerCase().includes(value))
+      .slice(0, 25);
     await interaction.respond(filtered.map((c) => ({ name: c, value: c })));
   },
 } as Command;

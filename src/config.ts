@@ -19,10 +19,10 @@ export const config: Config = {
   OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
   GOOGLE_CREDENTIALS_JSON: process.env.GOOGLE_CREDENTIALS_JSON,
   // Sheets config
-  EXERCISE_SHEET_ID: '14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc',
+  EXERCISE_SHEET_ID: "14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc",
   TIMEZONE: "Europe/Prague",
   // Notion config
-  NOTION_TASKS_DATABASE_ID: 'b901624ee2024a2b8c2bfbe6f94cacd4',
+  NOTION_TASKS_DATABASE_ID: "b901624ee2024a2b8c2bfbe6f94cacd4",
 };
 
 if (!config.BOT_TOKEN) {
@@ -30,7 +30,9 @@ if (!config.BOT_TOKEN) {
   process.exit(1);
 }
 if (!config.GOOGLE_CREDENTIALS_JSON) {
-  console.error("❌ GOOGLE_CREDENTIALS_JSON is not defined. Google Sheets will not work.");
+  console.error(
+    "❌ GOOGLE_CREDENTIALS_JSON is not defined. Google Sheets will not work."
+  );
   process.exit(1);
 }
 if (!config.NOTION_API_KEY) {
@@ -38,6 +40,8 @@ if (!config.NOTION_API_KEY) {
   process.exit(1);
 }
 if (!config.OPEN_ROUTER_API_KEY) {
-  console.error("❌ OPEN_ROUTER_API_KEY is not defined. Open Router will not work.");
+  console.error(
+    "❌ OPEN_ROUTER_API_KEY is not defined. Open Router will not work."
+  );
   process.exit(1);
 }

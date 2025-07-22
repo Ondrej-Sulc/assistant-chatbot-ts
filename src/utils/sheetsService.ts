@@ -1,6 +1,7 @@
 import { google, sheets_v4 } from "googleapis";
 import { JWT } from "google-auth-library";
 import { config } from "../config";
+import { handleError } from "./errorHandler";
 
 // Type for Google service account credentials
 interface GoogleCredentials {
@@ -44,12 +45,20 @@ class SheetsService {
     let credentials;
     try {
       // Decode the Base64 string back to JSON string
-      const decodedCredentialsString = Buffer.from(config.GOOGLE_CREDENTIALS_JSON, 'base64').toString('utf8');
+      const decodedCredentialsString = Buffer.from(
+        config.GOOGLE_CREDENTIALS_JSON,
+        "base64"
+      ).toString("utf8");
       // Parse the decoded JSON string
       credentials = JSON.parse(decodedCredentialsString);
     } catch (error) {
-      console.error(`Error loading/parsing Google credentials from environment variable:`, error);
-      throw new Error(`Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`);
+      console.error(
+        `Error loading/parsing Google credentials from environment variable:`,
+        error
+      );
+      throw new Error(
+        `Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`
+      );
     }
     const scopes = ["https://www.googleapis.com/auth/spreadsheets"];
     const auth = new JWT({
@@ -77,9 +86,11 @@ class SheetsService {
       });
       return response.data.values || null;
     } catch (error) {
-      console.error("Error reading from Google Sheets:", error);
-      // Re-throw the error to be handled by the calling function
-      throw new Error("Failed to read from Google Sheets.");
+      const { errorId } = handleError(error, {
+        location: "sheetsService:readSheet",
+        extra: { spreadsheetId, range },
+      });
+      throw new Error(`Failed to read from Google Sheets. (Error ID: ${errorId})`);
     }
   }
 
@@ -91,20 +102,27 @@ class SheetsService {
    * @param values A 2D array of data to write.
    * @returns The number of cells updated.
    */
-  public async writeSheet(spreadsheetId: string, range: string, values: any[][]): Promise<number> {
+  public async writeSheet(
+    spreadsheetId: string,
+    range: string,
+    values: any[][]
+  ): Promise<number> {
     try {
       const response = await this.sheets.spreadsheets.values.update({
         spreadsheetId,
         range,
-        valueInputOption: 'USER_ENTERED',
+        valueInputOption: "USER_ENTERED",
         requestBody: {
           values,
         },
       });
       return response.data.updatedCells || 0;
     } catch (error) {
-      console.error('Error writing to Google Sheets:', error);
-      throw new Error('Failed to write to Google Sheets.');
+      const { errorId } = handleError(error, {
+        location: "sheetsService:writeSheet",
+        extra: { spreadsheetId, range },
+      });
+      throw new Error(`Failed to write to Google Sheets. (Error ID: ${errorId})`);
     }
   }
 
@@ -116,21 +134,28 @@ class SheetsService {
    * @param values A 2D array of data to append.
    * @returns The number of cells appended.
    */
-  public async appendSheet(spreadsheetId: string, range: string, values: any[][]): Promise<number> {
+  public async appendSheet(
+    spreadsheetId: string,
+    range: string,
+    values: any[][]
+  ): Promise<number> {
     try {
       const response = await this.sheets.spreadsheets.values.append({
         spreadsheetId,
         range,
-        valueInputOption: 'USER_ENTERED',
-        insertDataOption: 'INSERT_ROWS',
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
         requestBody: {
           values,
         },
       });
       return response.data.updates?.updatedCells || 0;
     } catch (error) {
-      console.error('Error appending to Google Sheets:', error);
-      throw new Error('Failed to append to Google Sheets.');
+      const { errorId } = handleError(error, {
+        location: "sheetsService:appendSheet",
+        extra: { spreadsheetId, range },
+      });
+      throw new Error(`Failed to append to Google Sheets. (Error ID: ${errorId})`);
     }
   }
 }
@@ -151,7 +176,9 @@ function toReadableTimeFormat(value: string): string {
         const totalMinutes = Math.round(num * 24 * 60);
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
-        return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+        return `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}`;
       }
       return trimmed;
     })
@@ -159,7 +186,11 @@ function toReadableTimeFormat(value: string): string {
 }
 
 export async function getSchedules(): Promise<ScheduleRow[]> {
-  const rows = (await sheetsService.readSheet(config.EXERCISE_SHEET_ID, SCHEDULES_RANGE)) || [];
+  const rows =
+    (await sheetsService.readSheet(
+      config.EXERCISE_SHEET_ID,
+      SCHEDULES_RANGE
+    )) || [];
   // Remove header if present
   if (rows.length && rows[0][0] === "id") {
     rows.shift();
@@ -182,7 +213,9 @@ export async function getSchedules(): Promise<ScheduleRow[]> {
   }));
 }
 
-export async function addSchedule(schedule: Omit<ScheduleRow, "id" | "created_at">): Promise<void> {
+export async function addSchedule(
+  schedule: Omit<ScheduleRow, "id" | "created_at">
+): Promise<void> {
   const now = new Date().toISOString();
   const id = `${Date.now()}`;
   const row = [
@@ -201,10 +234,17 @@ export async function addSchedule(schedule: Omit<ScheduleRow, "id" | "created_at
     schedule.unit || "",
     schedule.cron_expression || "",
   ];
-  await sheetsService.appendSheet(config.EXERCISE_SHEET_ID, SCHEDULES_SHEET_NAME, [row]);
+  await sheetsService.appendSheet(
+    config.EXERCISE_SHEET_ID,
+    SCHEDULES_SHEET_NAME,
+    [row]
+  );
 }
 
-export async function updateSchedule(id: string, updates: Partial<ScheduleRow>): Promise<void> {
+export async function updateSchedule(
+  id: string,
+  updates: Partial<ScheduleRow>
+): Promise<void> {
   const schedules = await getSchedules();
   const idx = schedules.findIndex((s) => s.id === id);
   if (idx === -1) throw new Error("Schedule not found");

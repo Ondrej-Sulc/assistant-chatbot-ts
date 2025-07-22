@@ -7,14 +7,15 @@ import { Command } from "../types/command";
 import { notionService } from "../utils/notionService";
 import { config } from "../config";
 import { parseNaturalDate } from "../utils/dateParser";
+import { handleError, safeReply } from "../utils/errorHandler";
 
 // --- CORE LOGIC FUNCTION ---
 export async function core(params: {
-  userId: string,
-  title: string,
-  due?: string | null,
+  userId: string;
+  title: string;
+  due?: string | null;
 }): Promise<{
-  content: string | null,
+  content: string | null;
 }> {
   try {
     const { title, due } = params;
@@ -29,10 +30,10 @@ export async function core(params: {
       dueDate = parsed as string;
     }
     const properties: Record<string, any> = {
-      "Task": { title: [{ text: { content: title } }] },
-      "Inbox": { checkbox: true },
+      Task: { title: [{ text: { content: title } }] },
+      Inbox: { checkbox: true },
       "Kanban - State": { select: { name: "To Do" } },
-      "Priority": { select: { name: "Medium" } },
+      Priority: { select: { name: "Medium" } },
     };
     if (dueDate) {
       properties.Due = { date: { start: dueDate } };
@@ -42,7 +43,9 @@ export async function core(params: {
       properties,
     });
     return {
-      content: `✅ Created new task: **${title}**${dueDate ? ` (Due: ${dueDate})` : ""}`,
+      content: `✅ Created new task: **${title}**${
+        dueDate ? ` (Due: ${dueDate})` : ""
+      }`,
     };
   } catch (error) {
     console.error("/newtask core error:", error);
@@ -83,10 +86,11 @@ export default {
         content: result.content || undefined,
       });
     } catch (error) {
-      console.error("/newtask command error:", error);
-      await interaction.editReply({
-        content: "Failed to create new task. Please try again later.",
+      const { userMessage, errorId } = handleError(error, {
+        location: "command:newtask",
+        userId: interaction.user.id,
       });
+      await safeReply(interaction, userMessage, errorId);
     }
   },
 } as Command;

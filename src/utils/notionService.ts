@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { handleError } from "./errorHandler";
 
 const NOTION_API_URL = "https://api.notion.com/v1";
 const NOTION_VERSION = "2022-06-28";
@@ -58,56 +59,100 @@ export class NotionService {
     this.apiKey = apiKey;
   }
 
-  async queryDatabase(databaseId: string, query: NotionQueryDatabaseRequest = {}): Promise<NotionQueryDatabaseResponse> {
-    const res = await fetch(`${NOTION_API_URL}/databases/${databaseId}/query`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_VERSION,
-      },
-      body: JSON.stringify(query),
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Notion API error: ${res.status} ${errorText}`);
+  async queryDatabase(
+    databaseId: string,
+    query: NotionQueryDatabaseRequest = {}
+  ): Promise<NotionQueryDatabaseResponse> {
+    try {
+      const res = await fetch(`${NOTION_API_URL}/databases/${databaseId}/query`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          "Notion-Version": NOTION_VERSION,
+        },
+        body: JSON.stringify(query),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
+          location: "notionService:queryDatabase",
+          extra: { databaseId, query },
+        });
+        throw new Error(`Failed to query Notion database. (Error ID: ${errorId})`);
+      }
+      return res.json();
+    } catch (error) {
+      const { errorId } = handleError(error, {
+        location: "notionService:queryDatabase",
+        extra: { databaseId, query },
+      });
+      throw new Error(`Failed to query Notion database. (Error ID: ${errorId})`);
     }
-    return res.json();
   }
 
-  async updatePage(pageId: string, update: NotionUpdatePageRequest): Promise<NotionUpdatePageResponse> {
-    const res = await fetch(`${NOTION_API_URL}/pages/${pageId}`, {
-      method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_VERSION,
-      },
-      body: JSON.stringify(update),
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Notion API error: ${res.status} ${errorText}`);
+  async updatePage(
+    pageId: string,
+    update: NotionUpdatePageRequest
+  ): Promise<NotionUpdatePageResponse> {
+    try {
+      const res = await fetch(`${NOTION_API_URL}/pages/${pageId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          "Notion-Version": NOTION_VERSION,
+        },
+        body: JSON.stringify(update),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
+          location: "notionService:updatePage",
+          extra: { pageId, update },
+        });
+        throw new Error(`Failed to update Notion page. (Error ID: ${errorId})`);
+      }
+      return res.json();
+    } catch (error) {
+      const { errorId } = handleError(error, {
+        location: "notionService:updatePage",
+        extra: { pageId, update },
+      });
+      throw new Error(`Failed to update Notion page. (Error ID: ${errorId})`);
     }
-    return res.json();
   }
 
-  async createPage(create: NotionCreatePageRequest): Promise<NotionCreatePageResponse> {
-    const res = await fetch(`${NOTION_API_URL}/pages`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_VERSION,
-      },
-      body: JSON.stringify(create),
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Notion API error: ${res.status} ${errorText}`);
+  async createPage(
+    create: NotionCreatePageRequest
+  ): Promise<NotionCreatePageResponse> {
+    try {
+      const res = await fetch(`${NOTION_API_URL}/pages`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          "Notion-Version": NOTION_VERSION,
+        },
+        body: JSON.stringify(create),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
+          location: "notionService:createPage",
+          extra: { create },
+        });
+        throw new Error(`Failed to create Notion page. (Error ID: ${errorId})`);
+      }
+      return res.json();
+    } catch (error) {
+      const { errorId } = handleError(error, {
+        location: "notionService:createPage",
+        extra: { create },
+      });
+      throw new Error(`Failed to create Notion page. (Error ID: ${errorId})`);
     }
-    return res.json();
   }
 }
 
-export const notionService = new NotionService(config.NOTION_API_KEY!); 
+export const notionService = new NotionService(config.NOTION_API_KEY!);

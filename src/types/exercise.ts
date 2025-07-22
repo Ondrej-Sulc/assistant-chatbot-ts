@@ -1,20 +1,15 @@
 // Enum for exercise types
-export enum ExerciseType {
-  Pushup = 'pushup',
-  Pullup = 'pullup',
-}
-
-// Type for a row in the exercise sheet
 export interface ExerciseSheetRow {
-  date: string; // dd/MM/yyyy
-  note?: string;
+  date: string;
   pushups: number;
   pullups: number;
 }
+
+export type ExerciseType = 'pushup' | 'pullup';
 
 // Type for chart data
 export interface ExerciseChartData {
   date: string;
   pushups: number;
   pullups: number;
-} 
+}
