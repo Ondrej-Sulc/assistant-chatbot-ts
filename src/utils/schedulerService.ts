@@ -179,12 +179,17 @@ async function runScheduledCommand(
       const user = await client.users.fetch(targetUserId);
       if (user) {
         const messageOptions: MessageCreateOptions = {};
-        if (result.content) messageOptions.content = result.content;
-        if (result.components && result.components.length > 0)
-          messageOptions.components = result.components;
-        if (result.isComponentsV2)
+        if (result.isComponentsV2) {
           messageOptions.flags = MessageFlags.IsComponentsV2;
-        if (!messageOptions.content)
+          if (result.components && result.components.length > 0)
+            messageOptions.components = result.components;
+          // Do NOT include content when using Components V2
+        } else {
+          if (result.content) messageOptions.content = result.content;
+          if (result.components && result.components.length > 0)
+            messageOptions.components = result.components;
+        }
+        if (!messageOptions.content && !result.isComponentsV2)
           messageOptions.content = `Scheduled command ran: ${cmdName}`;
         await user.send(messageOptions);
         return;
@@ -206,12 +211,17 @@ async function runScheduledCommand(
       ) {
         const sendable = channel as TextChannel | ThreadChannel;
         const messageOptions: MessageCreateOptions = {};
-        if (result.content) messageOptions.content = result.content;
-        if (result.components && result.components.length > 0)
-          messageOptions.components = result.components;
-        if (result.isComponentsV2)
+        if (result.isComponentsV2) {
           messageOptions.flags = MessageFlags.IsComponentsV2;
-        if (!messageOptions.content)
+          if (result.components && result.components.length > 0)
+            messageOptions.components = result.components;
+          // Do NOT include content when using Components V2
+        } else {
+          if (result.content) messageOptions.content = result.content;
+          if (result.components && result.components.length > 0)
+            messageOptions.components = result.components;
+        }
+        if (!messageOptions.content && !result.isComponentsV2)
           messageOptions.content = `Scheduled command ran: ${cmdName}`;
         await sendable.send(messageOptions);
       } else {
@@ -294,7 +304,7 @@ export async function startScheduler(client: Client) {
       const job = cron.schedule(
         cronExpr,
         async () => {
-          console.log(`[Scheduler] Triggering schedule:`, schedule);
+          console.log(`[Scheduler] Triggering schedule: ${JSON.stringify(schedule)}`);
           if (schedule.message && schedule.message.trim()) {
             await sendScheduledMessage(
               schedule.message,

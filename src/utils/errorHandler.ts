@@ -21,7 +21,7 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
     stack: error instanceof Error ? error.stack : undefined,
   };
   // Log with context
-  console.error(`[Error:${errorId}]`, logContext);
+  console.error(`[Error:${errorId}] ${JSON.stringify(logContext)}`);
   // User message
   const userMessage =
     `❌ An error occurred${
@@ -46,6 +46,7 @@ export async function safeReply(
     }
   } catch (err) {
     // If reply fails, log it
-    console.error(`[safeReply] Failed to reply to interaction:`, err);
+    console.error(`[safeReply] Failed to reply to interaction: ${JSON.stringify(err)}`);
   }
 }
+

@@ -474,7 +474,7 @@ export default {
             ? { flags: [MessageFlags.IsComponentsV2] }
             : {}),
           components: result.components,
-          content: result.content || undefined,
+          ...(result.isComponentsV2 ? {} : { content: result.content || undefined }),
           files: result.files,
         });
       } else if (result.components && result.components.length > 0) {
@@ -483,7 +483,7 @@ export default {
             ? { flags: [MessageFlags.IsComponentsV2] }
             : {}),
           components: result.components,
-          content: result.content || undefined,
+          ...(result.isComponentsV2 ? {} : { content: result.content || undefined }),
         });
       } else {
         await interaction.reply({
