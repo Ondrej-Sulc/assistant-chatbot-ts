@@ -48,7 +48,7 @@ export async function handleRemoveScheduleButton(
     const scheduleId = interaction.customId.replace("remove-schedule-", "");
     await deleteSchedule(scheduleId);
     await interaction.reply({
-      content: `🗑️ Schedule removed!`,
+      content: `❌ Schedule removed!`,
       flags: [MessageFlags.Ephemeral],
     });
   } catch (error) {
@@ -300,7 +300,7 @@ export default {
         await startScheduler(interaction.client);
         await safeReply(
           interaction,
-          `🗑️ Schedule with ID \`${id}\` has been removed (set inactive).`
+          `❌ Schedule with ID \`${id}\` has been removed (set inactive).`
         );
       }
     } catch (error) {

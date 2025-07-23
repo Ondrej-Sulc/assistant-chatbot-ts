@@ -1,6 +1,10 @@
-import { Interaction, MessageFlags } from "discord.js";
+import {ButtonInteraction, ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { randomBytes } from "crypto";
 
+export type RepliableInteraction =
+  | ChatInputCommandInteraction
+  | ButtonInteraction;
+  
 export interface ErrorContext {
   location?: string; // e.g., command name, service name
   userId?: string;
@@ -31,22 +35,23 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
 }
 
 export async function safeReply(
-  interaction: any,
+  interaction: RepliableInteraction,
   userMessage: string,
   errorId?: string
 ) {
-  const content = errorId
-    ? `${userMessage}\n(Error ID: ${errorId})`
-    : userMessage;
+  const content = userMessage;
   try {
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply({ content, flags: [MessageFlags.Ephemeral] });
-    } else {
-      await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
+    if (interaction.isRepliable()) {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content });
+      } else {
+        await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
+      }
     }
   } catch (err) {
-    // If reply fails, log it
-    console.error(`[safeReply] Failed to reply to interaction: ${JSON.stringify(err)}`);
+    console.error(
+      `[safeReply] Failed to reply to interaction (ID: ${interaction.id}, Type: ${interaction.type}): ${JSON.stringify(err)}`
+    );
   }
 }
 

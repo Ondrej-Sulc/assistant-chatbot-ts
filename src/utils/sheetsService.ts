@@ -3,13 +3,6 @@ import { JWT } from "google-auth-library";
 import { config } from "../config";
 import { handleError } from "./errorHandler";
 
-// Type for Google service account credentials
-interface GoogleCredentials {
-  client_email: string;
-  private_key: string;
-  [key: string]: any;
-}
-
 // Type for a row in the Schedules sheet
 export interface ScheduleRow {
   id: string;
