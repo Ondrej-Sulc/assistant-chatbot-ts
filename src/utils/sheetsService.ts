@@ -265,7 +265,7 @@ export async function updateSchedule(
     updated.unit || "",
     updated.cron_expression || "",
   ];
-  const writeRange = `${SCHEDULES_SHEET_NAME}!A${idx + 2}:N${idx + 2}`;
+  const writeRange = `${SCHEDULES_SHEET_NAME}!A${idx + 1}:N${idx + 1}`;
   await sheetsService.writeSheet(config.EXERCISE_SHEET_ID, writeRange, [row]);
 }
 
