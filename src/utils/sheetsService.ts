@@ -7,7 +7,7 @@ import { handleError } from "./errorHandler";
 export interface ScheduleRow {
   id: string;
   name: string; // user-defined label for the schedule
-  frequency: 'daily' | 'weekly' | 'monthly' | 'every' | 'custom';
+  frequency: ScheduleFrequency;
   time: string;
   command: string;
   message?: string;
@@ -19,6 +19,14 @@ export interface ScheduleRow {
   interval?: string;
   unit?: 'days' | 'weeks';
   cron_expression?: string;
+}
+
+export enum ScheduleFrequency {
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+  EVERY = 'every',
+  CUSTOM = 'custom',
 }
 
 const SCHEDULES_SHEET_NAME = "Schedules";

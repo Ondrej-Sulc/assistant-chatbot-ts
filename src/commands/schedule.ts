@@ -14,6 +14,7 @@ import {
   addSchedule,
   getSchedules,
   deleteSchedule,
+  ScheduleFrequency
 } from "../utils/sheetsService";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { startScheduler } from "../utils/schedulerService";
@@ -177,7 +178,7 @@ export default {
     try {
       if (subcommand === "add") {
         const name = interaction.options.getString("name", true);
-        const frequency = interaction.options.getString("frequency", true) as "every" | "daily" | "weekly" | "monthly" | "custom";
+        const frequency = interaction.options.getString("frequency", true) as ScheduleFrequency;
         const time = interaction.options.getString("time", true);
         const command = interaction.options.getString("command") || undefined;
         const message = interaction.options.getString("message") || undefined;

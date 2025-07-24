@@ -77,7 +77,7 @@ export class NotionService {
         const errorText = await res.text();
         const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
           location: "notionService:queryDatabase",
-          extra: { databaseId, query },
+          extra: { databaseId, query, status: res.status },
         });
         throw new Error(`Failed to query Notion database. (Error ID: ${errorId})`);
       }
@@ -109,7 +109,7 @@ export class NotionService {
         const errorText = await res.text();
         const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
           location: "notionService:updatePage",
-          extra: { pageId, update },
+          extra: { pageId, update, status: res.status},
         });
         throw new Error(`Failed to update Notion page. (Error ID: ${errorId})`);
       }
