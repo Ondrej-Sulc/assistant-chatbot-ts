@@ -7,7 +7,7 @@ import { handleError } from "./errorHandler";
 export interface ScheduleRow {
   id: string;
   name: string; // user-defined label for the schedule
-  frequency: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'every' | 'custom';
   time: string;
   command: string;
   message?: string;
@@ -17,7 +17,7 @@ export interface ScheduleRow {
   created_at: string;
   day?: string;
   interval?: string;
-  unit?: string;
+  unit?: 'days' | 'weeks';
   cron_expression?: string;
 }
 
@@ -188,7 +188,7 @@ export async function getSchedules(): Promise<ScheduleRow[]> {
   if (rows.length && rows[0][0] === "id") {
     rows.shift();
   }
-  return rows.map((row) => ({
+  return rows.map((row): ScheduleRow => ({
     id: row[0],
     name: row[1],
     frequency: row[2],
