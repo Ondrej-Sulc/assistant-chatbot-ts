@@ -12,6 +12,14 @@ interface Config {
   NOTION_TASKS_DATABASE_ID: string;
 }
 
+function getEnv(key: string, defaultValue?: string): string {
+  const value = process.env[key] || defaultValue;
+  if (value === undefined) {
+    throw new Error(`❌ Missing required environment variable: ${key}`);
+  }
+  return value;
+}
+
 const createConfig = (): Config => {
   const required = {
     DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
@@ -26,13 +34,13 @@ const createConfig = (): Config => {
   });
 
   return {
-    BOT_TOKEN: required.DISCORD_BOT_TOKEN as string,
-    APPLICATION_ID: required.DISCORD_APPLICATION_ID as string,
-    NOTION_API_KEY: required.NOTION_API_KEY as string,
-    OPEN_ROUTER_API_KEY: required.OPEN_ROUTER_API_KEY as string,
-    GOOGLE_CREDENTIALS_JSON: required.GOOGLE_CREDENTIALS_JSON as string,
+    BOT_TOKEN: getEnv("DISCORD_BOT_TOKEN"),
+    APPLICATION_ID: getEnv("DISCORD_APPLICATION_ID"),
+    NOTION_API_KEY: getEnv("NOTION_API_KEY"),
+    OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
+    GOOGLE_CREDENTIALS_JSON: getEnv("GOOGLE_CREDENTIALS_JSON"),
     EXERCISE_SHEET_ID: "14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc",
-    TIMEZONE: process.env.TIMEZONE || "Europe/Prague",
+    TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
     NOTION_TASKS_DATABASE_ID: "b901624ee2024a2b8c2bfbe6f94cacd4",
   };
 };

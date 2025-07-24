@@ -48,10 +48,11 @@ export async function core(params: {
       }`,
     };
   } catch (error) {
-    console.error("/newtask core error:", error);
-    return {
-      content: "Failed to create new task. Please try again later.",
-    };
+    const { userMessage } = handleError(error, {
+      location: "command:newtask:core",
+      userId: params.userId,
+    });
+    return { content: userMessage };
   }
 }
 // --- END CORE LOGIC ---

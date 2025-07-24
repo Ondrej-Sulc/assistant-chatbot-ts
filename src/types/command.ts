@@ -6,6 +6,20 @@ import {
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
+export interface CommandExecuteParams {
+  interaction: ChatInputCommandInteraction;
+  userId: string;
+  guildId?: string;
+}
+
+export interface CommandResult {
+  content?: string;
+  components?: any[];
+  files?: any[];
+  isComponentsV2?: boolean;
+  ephemeral?: boolean;
+}
+
 export interface Command {
   data:
     | SlashCommandBuilder
