@@ -93,4 +93,4 @@ export default {
       await safeReply(interaction, userMessage, errorId);
     }
   },
-} as Command;
+} satisfies Command;

@@ -101,9 +101,9 @@ export async function handleButton(interaction: ButtonInteraction) {
 registerButtonHandler("exercise-", handleButton);
 
 // Subcommand names as constants
-const SUBCOMMAND_PUSHUP = "pushup";
-const SUBCOMMAND_PULLUP = "pullup";
-const SUBCOMMAND_STATS = "stats";
+const SUBCOMMAND_PUSHUP = "pushup" as const;
+const SUBCOMMAND_PULLUP = "pullup" as const;
+const SUBCOMMAND_STATS = "stats" as const;
 
 // --- CORE LOGIC FUNCTION ---
 export async function core(params: {
@@ -498,4 +498,4 @@ export default {
       await safeReply(interaction, userMessage, errorId);
     }
   },
-} as Command;
+} satisfies Command;
