@@ -13,30 +13,28 @@ interface Config {
 }
 
 const createConfig = (): Config => {
-  const {
-    DISCORD_BOT_TOKEN,
-    DISCORD_APPLICATION_ID,
-    NOTION_API_KEY,
-    OPEN_ROUTER_API_KEY,
-    GOOGLE_CREDENTIALS_JSON,
-  } = process.env;
+  const required = {
+    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
+    DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
+    NOTION_API_KEY: process.env.NOTION_API_KEY,
+    OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
+    GOOGLE_CREDENTIALS_JSON: process.env.GOOGLE_CREDENTIALS_JSON,
+  };
 
-  if (!DISCORD_BOT_TOKEN) throw new Error("❌ DISCORD_BOT_TOKEN is missing");
-  if (!DISCORD_APPLICATION_ID) throw new Error("❌ DISCORD_APPLICATION_ID is missing");
-  if (!NOTION_API_KEY) throw new Error("❌ NOTION_API_KEY is missing");
-  if (!OPEN_ROUTER_API_KEY) throw new Error("❌ OPEN_ROUTER_API_KEY is missing");
-  if (!GOOGLE_CREDENTIALS_JSON) throw new Error("❌ GOOGLE_CREDENTIALS_JSON is missing");
+  Object.entries(required).forEach(([key, value]) => {
+    if (!value) throw new Error(`❌ ${key} is missing`);
+  });
 
   return {
-    BOT_TOKEN: DISCORD_BOT_TOKEN,
-    APPLICATION_ID: DISCORD_APPLICATION_ID,
-    NOTION_API_KEY,
-    OPEN_ROUTER_API_KEY,
-    GOOGLE_CREDENTIALS_JSON,
+    BOT_TOKEN: required.DISCORD_BOT_TOKEN as string,
+    APPLICATION_ID: required.DISCORD_APPLICATION_ID as string,
+    NOTION_API_KEY: required.NOTION_API_KEY as string,
+    OPEN_ROUTER_API_KEY: required.OPEN_ROUTER_API_KEY as string,
+    GOOGLE_CREDENTIALS_JSON: required.GOOGLE_CREDENTIALS_JSON as string,
     EXERCISE_SHEET_ID: "14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc",
     TIMEZONE: process.env.TIMEZONE || "Europe/Prague",
     NOTION_TASKS_DATABASE_ID: "b901624ee2024a2b8c2bfbe6f94cacd4",
   };
 };
-    
+
 export const config: Config = createConfig();
