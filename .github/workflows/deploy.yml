@@ -1,68 +1,37 @@
-# Name of the workflow, will be displayed in the GitHub Actions tab
-name: Deploy to Google Cloud Run
+# .github/workflows/deploy.yml
+name: Deploy to Railway
 
-# This workflow runs on any push to the 'main' branch
 on:
   push:
     branches: [main]
 
-# Environment variables available to all jobs and steps in this workflow
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GAR_LOCATION: europe-west1 # The region of your Artifact Registry
-  SERVICE_NAME: discord-assistant-chatbot # The name of your Cloud Run service
-  GAR_REPOSITORY: assistant-chatbot # The name of the artifact repository
-  IMAGE_NAME: assistant-chatbot-image # The name of the Docker image
-
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Deploy to Railway
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout your repository code
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Authenticate to Google Cloud
-      - name: Google Auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      # 1. Install Railway CLI
+      - name: Install Railway CLI
+        run: npm install -g @railwaydev/cli
 
-      # 3. Set up the gcloud CLI
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      # 2. Deploy to Railway
+      # Railway automatically detects your Dockerfile and builds/deploys it.
+      # It will pick up the 'production' stage since it's the last one defined.
+      - name: Deploy Application to Railway
+        run: railway deploy --commit-hash ${{ github.sha }} --detach --service assistant-chatbot-ts
+        env:
+          # Railway API Token (required for deployment)
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          # Pass your application environment variables.
+          # Railway will inject these into your running container.
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
 
-      # 4. Configure Docker to use gcloud as a credential helper
-      - name: Configure Docker
-        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
-
-      # 5. Build and push the Docker image to Google Artifact Registry
-      - name: Build and Push Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-      # 6. Deploy the new image to Google Cloud Run
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_NAME }}
-          region: ${{ env.GAR_LOCATION }}
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
-          # Configure the service for a background worker
-          flags: |
-            --no-cpu-throttling
-            --cpu-boost
-            --min-instances=1
-          # Pass your bot's secrets to Cloud Run as environment variables
-          env_vars: |
-            DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}
-            DISCORD_APPLICATION_ID=${{ secrets.DISCORD_APPLICATION_ID }}
-            GOOGLE_CREDENTIALS_JSON=${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-            NOTION_API_KEY=${{ secrets.NOTION_API_KEY }}
-            OPEN_ROUTER_API_KEY=${{ secrets.OPEN_ROUTER_API_KEY }}
+          NODE_ENV: production
