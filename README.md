@@ -1,108 +1,144 @@
 # Assistant Chatbot (TypeScript)
 
-## Overview
-This is a modular Discord bot written in TypeScript, featuring dynamic command loading, scheduling, Notion and Google Sheets integration, and error handling.
+A personal, modular Discord bot built with TypeScript. This bot integrates with Notion for task management, Google Sheets for data logging, and OpenRouter for AI capabilities, all running on Discord.js v14.
+
+## Key Features
+
+-   **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
+-   **Task Management (Notion):** Create new tasks (`/newtask`) and view today's agenda (`/today`) with interactive completion buttons.
+-   **Exercise Logging (Google Sheets):** Log pushups and pullups with quick-add buttons or specific amounts.
+-   **Stats Visualization:** View exercise statistics as a chart for various timeframes (`/exercise stats`).
+-   **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, custom cron, etc.) via `/schedule`.
+-   **Centralized Error Handling:** A robust system that provides users with a unique error ID while logging detailed context for debugging.
+-   **Dockerized Environment:** Fully containerized for consistent development and easy deployment.
+-   **CI/CD Pipeline:** Automated deployments to Railway via GitHub Actions on every push to `main`.
+
+## Technology Stack
+
+-   **Language:** TypeScript (Strict Mode)
+-   **Framework:** Discord.js v14
+-   **APIs:** Notion, Google Sheets, OpenRouter
+-   **Scheduling:** `node-cron`
+-   **Containerization:** Docker & Docker Compose
+-   **Deployment:** Railway.app & GitHub Actions
 
 ---
 
-## Features
-- **Dynamic Slash Command Loading**
-- **Task and Exercise Tracking (Notion, Google Sheets)**
-- **Cron-based Scheduling**
-- **Centralized Error Handling**
-- **Health Check HTTP Server**
+## Getting Started (Local Development)
 
----
+### Prerequisites
 
-## Centralized Error Handling
+-   Node.js v18+
+-   Docker and Docker Compose
+-   A Discord Bot application
+-   API keys for Notion, Google, and OpenRouter
 
-### How It Works
-- All errors in commands and button handlers are routed through a centralized error handler (`src/utils/errorHandler.ts`).
-- Errors are logged with a unique error ID and context (command name, user ID, etc.).
-- Users receive a friendly error message with the error ID, which can be referenced for support or debugging.
+### 1. Clone the Repository
 
-### Usage in Commands
-Import the utilities:
-```ts
-import { handleError, safeReply } from "../utils/errorHandler";
+```bash
+git clone <your-repo-url>
+cd assistant-chatbot-ts
 ```
-Wrap your logic in try/catch:
-```ts
-try {
-  // ...command logic...
-} catch (error) {
-  const { userMessage, errorId } = handleError(error, {
-    location: "command:yourcommand",
-    userId: interaction.user.id,
-  });
-  await safeReply(interaction, userMessage, errorId);
-}
-```
-- Use `handleError` for logging and generating a user message.
-- Use `safeReply` to send the error message to the user (handles deferred/replied state).
 
-### Best Practices
-- Always provide context (location, userId) to `handleError` for better logs.
-- Use `safeReply` for all user-facing error replies in commands and button handlers.
-- For utility/services, use `handleError` for logging and propagate user-friendly errors up to the command layer.
-- Error IDs help users and maintainers track and debug issues efficiently.
+### 2. Set Up Environment Variables
+
+Create a `.env` file by copying the example:
+
+```bash
+cp .env.example .env
+```
+
+Fill in the values in the `.env` file.
+
+**Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64. You can generate this with the following command:
+
+```bash
+# For Linux/macOS
+cat /path/to/your/credentials.json | base64 -w 0
+
+# For Windows (in PowerShell)
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("/path/to/your/credentials.json"))
+```
+
+Copy the resulting string into the `.env` file.
+
+### 3. Run the Bot
+
+Use Docker Compose to build the image and start the container. The `docker-compose.yaml` is configured for development with hot-reloading.
+
+```bash
+docker-compose up --build
+```
+
+The bot should now be running and connected to Discord.
 
 ---
-
-## Project Purpose
-
-- Personal Discord bot for tracking exercise, managing tasks (Notion), scheduling messages/commands, and experimenting with AI (OpenRouter).
-- Modular command system, easy to extend.
-
-## Technologies Used
-
-- **TypeScript** (strict mode)
-- **Discord.js v14** (slash commands, components)
-- **Google Sheets API** (exercise logging, schedule storage)
-- **Notion API** (task management)
-- **OpenRouter API** (AI chat/completions)
-- **Docker** (for deployment/testing)
-- **GitHub Actions** (for deployment, deploys automatically on commit/PR)
 
 ## Project Structure
 
-- `src/commands/` — All slash commands (e.g., exercise, today, schedule)
-- `src/utils/` — Service helpers (sheets, notion, openrouter, scheduler, button registry)
-- `src/types/` — Shared TypeScript types
-- `src/config.ts` — Loads env vars, exits if missing
-- `src/index.ts` — Bot entry point, command loader, interaction handler
-
-## Environment Variables
-
-- See `.env.example` for all required keys (Discord, Notion, Google, OpenRouter)
-- Google credentials are a JSON string
-- Notion DB ID is hardcoded for now
-
-## Notable Features / Quirks
-
-- **Exercise logging:** `/exercise pushup|pullup` logs to Google Sheets, `/exercise stats` shows chart or today's stats
-- **/today command:** fetches tasks from Notion, displays each with a ☑️ button to mark as done
-- **Scheduling:** `/schedule add` lets you schedule either a command (e.g., `/today`, `/exercise pullup`) or a plain custom message to any channel or user, with flexible frequency (daily, weekly, monthly, every N days/weeks, or custom cron). Only relevant options are required. List and remove schedules with `/schedule list` and `/schedule remove`.
-- Button handlers are registered by prefix (see `buttonHandlerRegistry`)
-- All error replies are ephemeral and use a `safeReply` helper
-- Uses Discord.js v14 "V2" components (ContainerBuilder, SectionBuilder, etc)
-- All commands are auto-loaded from `src/commands/`
-
-## TODO / Ideas
-
-- Add more Notion task filters (e.g., by due date, priority)
-- Add OpenRouter-powered chat command
-- Add tests for utils/services
-- Add a refresh button to `/today` to reload tasks after marking done
-- Refactor large command files if they grow
-
-## Setup Reminders
-
-- Use `docker-compose up --build`
-- If adding new commands, just drop them in `src/commands/` and export default
-- For new button types, register handler with `registerButtonHandler`
-- For new schedule types or logic, update `src/commands/schedule.ts` and `src/utils/schedulerService.ts`
+assistant-chatbot-ts/
+├── .github/workflows/  # CI/CD pipeline for deployment
+├── src/
+│   ├── commands/       # Each file is a slash command
+│   ├── types/          # Shared TypeScript interfaces and types
+│   ├── utils/          # Service clients and helper functions
+│   ├── config.ts       # Environment variable loading and validation
+│   └── index.ts        # Bot entry point, client setup, event handlers
+├── Dockerfile          # Multi-stage build for lean production images
+├── docker-compose.yaml # Development environment setup
+└── README.md           # You are here
 
 ---
 
-_These notes are for my own reference. Update as needed when adding features or changing structure._
+## Core Concepts & Architecture
+
+This section provides an overview of the main architectural patterns, intended to guide future development and LLM-based assistance.
+
+### Command Handling
+
+-   **Location:** `src/commands/`
+-   **Pattern:** Each command file exports a `default` object conforming to the `Command` interface (`src/types/command.ts`).
+-   **Separation of Concerns:**
+    -   The `execute` function handles Discord-specific logic (interactions, replies, deferrals).
+    -   The `core` function contains the pure business logic. It is decoupled from Discord.js and can be tested independently or called from other parts of the application (like the scheduler).
+
+### Error Handling
+
+-   **Location:** `src/utils/errorHandler.ts`
+-   **Flow:** All `try/catch` blocks in commands and button handlers call `handleError`.
+-   **Functionality:**
+    1.  `handleError` logs the full error with context (location, user ID) and generates a unique, 4-byte hex `errorId`.
+    2.  It returns a user-friendly message containing this `errorId`.
+    3.  `safeReply` is used to send this message to the user, correctly handling whether the interaction has already been deferred or replied to.
+
+### Scheduling Service
+
+-   **Location:** `src/utils/schedulerService.ts` & `src/utils/sheetsService.ts`
+-   **Storage:** Schedule configurations are stored as rows in a dedicated Google Sheet ("Schedules").
+-   **Execution:**
+    1.  On startup, `startScheduler` fetches all active schedules from the sheet.
+    2.  It creates `node-cron` jobs for each schedule.
+    3.  Scheduled jobs can either send a simple message or execute a command's `core` function, allowing complex tasks to be automated.
+
+### Button Handling
+
+-   **Location:** `src/utils/buttonHandlerRegistry.ts`
+-   **Pattern:** Handlers are registered with a string `prefix` (e.g., `complete-task-`).
+-   **Execution:** The main `interactionCreate` event listener uses `getButtonHandler` to find the correct handler based on the `customId` of the clicked button. This avoids a giant `if/else` or `switch` statement.
+
+---
+
+## Deployment
+
+This project is configured for continuous deployment to [Railway](https://railway.app/).
+
+-   **Trigger:** A `git push` to the `main` branch.
+-   **Process:**
+    1.  The GitHub Action defined in `.github/workflows/deploy.yml` is triggered.
+    2.  It uses the Railway CLI to deploy the application.
+    3.  Railway automatically detects the `Dockerfile` and builds the `production` stage, creating a lean, optimized image.
+    4.  Environment variables are passed securely from GitHub Secrets to the Railway build environment.
+
+## Future Work & Ideas
+
+-   [ ] Add an OpenRouter-powered command.

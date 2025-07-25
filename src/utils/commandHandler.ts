@@ -57,7 +57,6 @@ export async function loadCommands() {
         command = commandModule as Command;
         console.log(`   💡 Found command as module root for: ${file}`);
       }
-      // --- END DEFINITIVE FIX ---
 
       if (command) {
         commands.set(command.data.name, command);
