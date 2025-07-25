@@ -9,7 +9,7 @@ import {
   TextDisplayBuilder,
   ButtonInteraction,
 } from "discord.js";
-import { Command } from "../types/command";
+import { Command, CommandResult } from "../types/command";
 import { notionService } from "../utils/notionService";
 import { config } from "../config";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
@@ -44,8 +44,7 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
 // Register the button handler
 registerButtonHandler("complete-task-", handleCompleteTask);
 
-// --- CORE LOGIC FUNCTION ---
-export async function core(params: { userId: string; ephemeral?: boolean }) {
+export async function core(params: { userId: string; ephemeral?: boolean }): Promise<CommandResult> {
   try {
     // TODO: Adjust filter for 'today' tasks
     const response = await notionService.queryDatabase(
@@ -108,7 +107,7 @@ export async function core(params: { userId: string; ephemeral?: boolean }) {
     });
 
     return {
-      content: null,
+      content: undefined,
       components: [container],
       isComponentsV2: true,
     };
@@ -124,7 +123,6 @@ export async function core(params: { userId: string; ephemeral?: boolean }) {
     };
   }
 }
-// --- END CORE LOGIC ---
 
 export default {
   data: new SlashCommandBuilder()

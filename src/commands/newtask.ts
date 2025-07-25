@@ -3,20 +3,17 @@ import {
   ChatInputCommandInteraction,
   MessageFlags,
 } from "discord.js";
-import { Command } from "../types/command";
+import { Command, CommandResult } from "../types/command";
 import { notionService } from "../utils/notionService";
 import { config } from "../config";
 import { parseNaturalDate } from "../utils/dateParser";
 import { handleError, safeReply } from "../utils/errorHandler";
 
-// --- CORE LOGIC FUNCTION ---
 export async function core(params: {
   userId: string;
   title: string;
   due?: string | null;
-}): Promise<{
-  content: string | null;
-}> {
+}): Promise<CommandResult> {
   try {
     const { title, due } = params;
     let dueDate: string | undefined;
@@ -55,7 +52,6 @@ export async function core(params: {
     return { content: userMessage };
   }
 }
-// --- END CORE LOGIC ---
 
 export default {
   data: new SlashCommandBuilder()

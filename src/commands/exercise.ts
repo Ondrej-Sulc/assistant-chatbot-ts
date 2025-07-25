@@ -1,4 +1,4 @@
-import { Command } from "../types/command";
+import { Command, CommandResult } from "../types/command";
 import { ExerciseType, ExerciseSheetRow } from "../types/exercise";
 import { config } from "../config";
 import {
@@ -34,7 +34,11 @@ function mapSheetRowsToExerciseSheetRows(rows: any[][]): ExerciseSheetRow[] {
   }));
 }
 
-// Utility to log exercise reps for today
+/**
+ * Logs exercise reps for the current day
+ * @param exerciseType - Type of exercise (pushup or pullup)
+ * @param amount - Number of reps to log
+ */
 async function logExercise(exerciseType: ExerciseType, amount: number) {
   try {
     const now = new Date();
@@ -105,18 +109,16 @@ const SUBCOMMAND_PUSHUP = "pushup" as const;
 const SUBCOMMAND_PULLUP = "pullup" as const;
 const SUBCOMMAND_STATS = "stats" as const;
 
-// --- CORE LOGIC FUNCTION ---
+/**
+ * Core logic for the exercise command
+ * @param params - Parameters including userId, subcommand, amount, and timeframe
+ */
 export async function core(params: {
   userId: string;
   subcommand: string;
   amount?: number | null;
   timeframe?: string | null;
-}): Promise<{
-  content: string | null;
-  components?: any[];
-  files?: any[];
-  isComponentsV2?: boolean;
-}> {
+}): Promise<CommandResult> {
   try {
     const { subcommand, amount, timeframe } = params;
     // --- STATS SUBCOMMAND ---
@@ -353,7 +355,7 @@ export async function core(params: {
           new TextDisplayBuilder().setContent(statsSummary)
         );
         return {
-          content: null,
+          content: undefined,
           components: [container],
           files: [{ attachment: imageBuffer, name: attachmentName }],
           isComponentsV2: true,
@@ -397,7 +399,7 @@ export async function core(params: {
       container.addTextDisplayComponents(text);
       container.addActionRowComponents(row);
       return {
-        content: null,
+        content: undefined,
         components: [container],
         isComponentsV2: true,
       };
@@ -411,7 +413,6 @@ export async function core(params: {
     return { content: userMessage };
   }
 }
-// --- END CORE LOGIC ---
 
 export default {
   data: new SlashCommandBuilder()
