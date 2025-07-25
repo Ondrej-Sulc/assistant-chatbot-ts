@@ -1,4 +1,9 @@
-// Enum for exercise types
+export enum ExerciseSubcommand {
+  Pushup = "pushup",
+  Pullup = "pullup",
+  Stats = "stats",
+}
+
 export interface ExerciseSheetRow {
   date: string;
   pushups: number;
@@ -7,7 +12,6 @@ export interface ExerciseSheetRow {
 
 export type ExerciseType = 'pushup' | 'pullup';
 
-// Type for chart data
 export interface ExerciseChartData {
   date: string;
   pushups: number;

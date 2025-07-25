@@ -1,5 +1,6 @@
 import { config } from "../config";
 import { handleError } from "./errorHandler";
+import { NotionPagePropertiesInput } from "../types/notion";
 
 const NOTION_API_URL = "https://api.notion.com/v1";
 const NOTION_VERSION = "2022-06-28";
@@ -26,19 +27,19 @@ export interface NotionQueryDatabaseResponse {
 }
 
 export interface NotionUpdatePageRequest {
-  properties: Record<string, any>;
+  properties: NotionPagePropertiesInput;
 }
 
 export interface NotionUpdatePageResponse {
   object: string;
   id: string;
-  properties: Record<string, any>;
+  properties: NotionPagePropertiesInput;
   // ...add more as needed
 }
 
 export interface NotionCreatePageRequest {
   parent: { database_id: string };
-  properties: Record<string, any>;
+  properties: NotionPagePropertiesInput;
   children?: any[];
   icon?: any;
   cover?: any;
@@ -47,7 +48,7 @@ export interface NotionCreatePageRequest {
 export interface NotionCreatePageResponse {
   object: string;
   id: string;
-  properties: Record<string, any>;
+  properties: NotionPagePropertiesInput;
   // ...add more as needed
 }
 

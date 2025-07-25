@@ -4,6 +4,7 @@ import {
   AutocompleteInteraction,
   SlashCommandOptionsOnlyBuilder,
   SlashCommandSubcommandsOnlyBuilder,
+  AttachmentBuilder,
 } from "discord.js";
 
 export interface CommandExecuteParams {
@@ -14,8 +15,8 @@ export interface CommandExecuteParams {
 
 export interface CommandResult {
   content?: string;
-  components?: any[];
-  files?: any[];
+  components?: any;
+  files?: AttachmentBuilder[];
   isComponentsV2?: boolean;
   ephemeral?: boolean;
 }
@@ -28,8 +29,11 @@ export interface Command {
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
   autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
   cooldown?: number;
-  subcommands?: Record<string, {
-    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
-    autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
-  }>;
+  subcommands?: Record<
+    string,
+    {
+      execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+      autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
+    }
+  >;
 }
