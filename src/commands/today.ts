@@ -10,7 +10,7 @@ import {
   ButtonInteraction,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
-import { notionService } from "../utils/notionService";
+import { NotionPage, notionService } from "../utils/notionService";
 import { config } from "../config";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { handleError, safeReply } from "../utils/errorHandler";
@@ -95,7 +95,7 @@ export async function core(params: { userId: string; ephemeral?: boolean }): Pro
     ]);
 
     response.results.forEach((page, index) => {
-      const taskPage = page as NotionTaskPage;
+      const taskPage = page as NotionPage;
       const title = taskPage.properties[NotionProperties.TASK].title[0]?.plain_text || page.id;
 
       const section = new SectionBuilder()
