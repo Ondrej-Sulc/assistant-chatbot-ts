@@ -6,8 +6,14 @@ import { Command } from "../types/command";
 const commandsPath = join(__dirname, "..", "commands");
 
 export const commands = new Collection<string, Command>();
+/**
+ * A collection of all the bot's commands.
+ */
 
 export async function loadCommands() {
+/**
+ * Loads all the commands from the commands directory.
+ */
   const isDevelopment = process.env.NODE_ENV === "development";
   const fileExtension = isDevelopment ? ".ts" : ".js";
   const commandFiles = readdirSync(commandsPath).filter((file) =>

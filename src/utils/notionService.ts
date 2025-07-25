@@ -51,15 +51,28 @@ export interface NotionCreatePageResponse {
   // ...add more as needed
 }
 
+/**
+ * Service for interacting with the Notion API.
+ */
 export class NotionService {
   private apiKey: string;
 
+  /**
+   * Creates an instance of NotionService.
+   * @param apiKey - The Notion API key.
+   */
   constructor(apiKey: string) {
     if (!apiKey) throw new Error("NOTION_API_KEY is not set in environment.");
     this.apiKey = apiKey;
   }
 
   async queryDatabase(
+  /**
+   * Queries a Notion database.
+   * @param databaseId - The ID of the database to query.
+   * @param query - The query parameters.
+   * @returns A promise that resolves to a NotionQueryDatabaseResponse.
+   */
     databaseId: string,
     query: NotionQueryDatabaseRequest = {}
   ): Promise<NotionQueryDatabaseResponse> {
@@ -92,6 +105,12 @@ export class NotionService {
   }
 
   async updatePage(
+  /**
+   * Updates a Notion page.
+   * @param pageId - The ID of the page to update.
+   * @param update - The update parameters.
+   * @returns A promise that resolves to a NotionUpdatePageResponse.
+   */
     pageId: string,
     update: NotionUpdatePageRequest
   ): Promise<NotionUpdatePageResponse> {
@@ -124,6 +143,11 @@ export class NotionService {
   }
 
   async createPage(
+  /**
+   * Creates a new Notion page.
+   * @param create - The creation parameters.
+   * @returns A promise that resolves to a NotionCreatePageResponse.
+   */
     create: NotionCreatePageRequest
   ): Promise<NotionCreatePageResponse> {
     try {

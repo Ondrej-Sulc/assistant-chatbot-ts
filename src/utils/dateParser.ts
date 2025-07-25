@@ -2,6 +2,9 @@
 // Supports: today, tomorrow, monday, tuesday, ..., sunday, and YYYY-MM-DD
 
 const WEEKDAYS = [
+/**
+ * An array of weekday names in lowercase.
+ */
   "sunday",
   "monday",
   "tuesday",
@@ -12,6 +15,13 @@ const WEEKDAYS = [
 ];
 
 export function parseNaturalDate(
+/**
+ * Parses a natural language date string into a YYYY-MM-DD format.
+ * Supports terms like 'today', 'tomorrow', 'next week', 'in X days/weeks', and weekdays.
+ * @param input - The natural language date string to parse.
+ * @param now - The current date to use as a reference.
+ * @returns The parsed date in YYYY-MM-DD format, or null if the input is invalid.
+ */
   input: string,
   now: Date = new Date()
 ): string | null {

@@ -27,9 +27,16 @@ export interface OpenRouterResponse {
   }>;
 }
 
+/**
+ * Service for interacting with the OpenRouter API.
+ */
 export class OpenRouterService {
   private apiKey: string;
 
+  /**
+   * Creates an instance of OpenRouterService.
+   * @param apiKey - The OpenRouter API key.
+   */
   constructor(apiKey: string) {
     if (!apiKey)
       throw new Error("OPEN_ROUTER_API_KEY is not set in environment.");
@@ -37,6 +44,11 @@ export class OpenRouterService {
   }
 
   async chat(request: OpenRouterRequest): Promise<OpenRouterResponse> {
+  /**
+   * Sends a chat request to the OpenRouter API.
+   * @param request - The chat request parameters.
+   * @returns A promise that resolves to an OpenRouterResponse.
+   */
     try {
       const res = await fetch(OPEN_ROUTER_API_URL, {
         method: "POST",

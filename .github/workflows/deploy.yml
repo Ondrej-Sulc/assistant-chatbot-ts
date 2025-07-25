@@ -14,7 +14,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 1. Install Railway CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
       - name: Install Railway CLI
         run: npm install -g @railwaydev/cli
 
@@ -24,10 +29,7 @@ jobs:
       - name: Deploy Application to Railway
         run: railway deploy --commit-hash ${{ github.sha }} --detach --service assistant-chatbot-ts
         env:
-          # Railway API Token (required for deployment)
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          # Pass your application environment variables.
-          # Railway will inject these into your running container.
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}

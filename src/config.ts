@@ -1,6 +1,8 @@
 import "dotenv/config";
 
-// Type for config object
+/**
+ * Represents the application's configuration.
+ */
 interface Config {
   BOT_TOKEN: string;
   APPLICATION_ID: string;
@@ -13,6 +15,13 @@ interface Config {
 }
 
 function getEnv(key: string, defaultValue?: string): string {
+/**
+ * Retrieves an environment variable by its key, throwing an error if it's not set.
+ * @param key - The key of the environment variable.
+ * @param defaultValue - A default value to use if the environment variable is not set.
+ * @returns The value of the environment variable.
+ * @throws Will throw an error if the environment variable is not set and no default value is provided.
+ */
   const value = process.env[key] || defaultValue;
   if (value === undefined) {
     throw new Error(`❌ Missing required environment variable: ${key}`);
@@ -21,6 +30,11 @@ function getEnv(key: string, defaultValue?: string): string {
 }
 
 const createConfig = (): Config => {
+/**
+ * Creates the configuration object by loading and validating environment variables.
+ * @returns The application configuration object.
+ * @throws Will throw an error if any required environment variables are missing.
+ */
   const required = {
     DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
     DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,

@@ -33,10 +33,16 @@ const SCHEDULES_SHEET_NAME = "Schedules";
 // Now 14 columns: id, name, frequency, time, command, message, target_channel_id, target_user_id, is_active, created_at, day, interval, unit, cron_expression
 const SCHEDULES_RANGE = `${SCHEDULES_SHEET_NAME}!A:N`;
 
+/**
+ * Service for interacting with Google Sheets.
+ */
 class SheetsService {
   private sheets: sheets_v4.Sheets;
 
-  // The constructor initializes the service by authenticating with Google.
+  /**
+   * Initializes the SheetsService by authenticating with Google.
+   * @throws Will throw an error if GOOGLE_CREDENTIALS_JSON is not defined or invalid.
+   */
   constructor() {
     if (!config.GOOGLE_CREDENTIALS_JSON) {
       throw new Error(
@@ -163,7 +169,12 @@ class SheetsService {
 
 export const sheetsService = new SheetsService();
 
-// Helper to convert Google Sheets time fraction or number to HH:mm
+/**
+ * Converts a Google Sheets time fraction or number to HH:mm format.
+ * Supports comma-separated times.
+ * @param value - The time value from Google Sheets.
+ * @returns The formatted time string(s).
+ */
 function toReadableTimeFormat(value: string): string {
   if (!value) return value;
   if (/^\d{1,2}:\d{2}$/.test(value)) return value; // already HH:mm
@@ -187,6 +198,10 @@ function toReadableTimeFormat(value: string): string {
 }
 
 export async function getSchedules(): Promise<ScheduleRow[]> {
+/**
+ * Retrieves all schedules from the Google Sheet.
+ * @returns A promise that resolves to an array of ScheduleRow objects.
+ */
   const rows =
     (await sheetsService.readSheet(
       config.EXERCISE_SHEET_ID,
@@ -215,6 +230,10 @@ export async function getSchedules(): Promise<ScheduleRow[]> {
 }
 
 export async function addSchedule(
+/**
+ * Adds a new schedule to the Google Sheet.
+ * @param schedule - The schedule object to add.
+ */
   schedule: Omit<ScheduleRow, "id" | "created_at">
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -243,6 +262,12 @@ export async function addSchedule(
 }
 
 export async function updateSchedule(
+/**
+ * Updates an existing schedule in the Google Sheet.
+ * @param id - The ID of the schedule to update.
+ * @param updates - The partial schedule object with updates.
+ * @throws Will throw an error if the schedule is not found.
+ */
   id: string,
   updates: Partial<ScheduleRow>
 ): Promise<void> {
@@ -271,5 +296,9 @@ export async function updateSchedule(
 }
 
 export async function deleteSchedule(id: string): Promise<void> {
+/**
+ * Deletes (marks as inactive) a schedule in the Google Sheet.
+ * @param id - The ID of the schedule to delete.
+ */
   await updateSchedule(id, { is_active: false });
 }

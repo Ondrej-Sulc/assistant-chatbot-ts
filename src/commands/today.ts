@@ -14,8 +14,12 @@ import { notionService } from "../utils/notionService";
 import { config } from "../config";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { handleError, safeReply } from "../utils/errorHandler";
+import { NotionProperties, NotionTaskPage } from "../types/notion";
 
-// Button handler for completing tasks
+/**
+ * Handles the button interaction for completing a task.
+ * @param interaction - The button interaction object.
+ */
 export async function handleCompleteTask(interaction: ButtonInteraction) {
   try {
     // Extract task ID from customId: "complete-task-{taskId}"
@@ -24,7 +28,7 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
     // Update the task in Notion to mark it as done
     await notionService.updatePage(taskId, {
       properties: {
-        Done: { checkbox: true },
+        [NotionProperties.DONE]: { checkbox: true },
       },
     });
 
@@ -45,6 +49,14 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
 registerButtonHandler("complete-task-", handleCompleteTask);
 
 export async function core(params: { userId: string; ephemeral?: boolean }): Promise<CommandResult> {
+/**
+ * The core logic for the /today command.
+ * Fetches and displays tasks due today from Notion.
+ * @param params - The parameters for the core function.
+ * @param params.userId - The ID of the user who initiated the command.
+ * @param params.ephemeral - Whether the reply should be ephemeral.
+ * @returns A promise that resolves to a CommandResult object.
+ */
   try {
     // TODO: Adjust filter for 'today' tasks
     const response = await notionService.queryDatabase(
@@ -53,13 +65,13 @@ export async function core(params: { userId: string; ephemeral?: boolean }): Pro
         filter: {
           and: [
             {
-              property: "Due",
+              property: NotionProperties.DUE,
               date: {
                 past_month: {},
               },
             },
             {
-              property: "Done",
+              property: NotionProperties.DONE,
               checkbox: {
                 equals: false,
               },
@@ -83,14 +95,8 @@ export async function core(params: { userId: string; ephemeral?: boolean }): Pro
     ]);
 
     response.results.forEach((page, index) => {
-      const properties = (page as Record<string, any>).properties;
-      const titleProp =
-        properties &&
-        Object.values(properties).find((prop: any) => prop.type === "title");
-      const title =
-        titleProp && titleProp.title && titleProp.title[0]
-          ? titleProp.title[0].plain_text
-          : page.id;
+      const taskPage = page as NotionTaskPage;
+      const title = taskPage.properties[NotionProperties.TASK].title[0]?.plain_text || page.id;
 
       const section = new SectionBuilder()
         .addTextDisplayComponents(

@@ -21,7 +21,12 @@ import { startScheduler } from "../utils/schedulerService";
 import { commands as loadedCommands } from "../utils/commandHandler";
 import { handleError, safeReply } from "../utils/errorHandler";
 
-// Helper to recursively extract subcommands and subcommand groups from a command's options
+/**
+ * Recursively extracts subcommands and subcommand groups from a command's options.
+ * @param options - The options to extract subcommands from.
+ * @param parent - The parent command name.
+ * @param allChoices - The array to store the extracted subcommand choices.
+ */
 function extractSubcommands(
   options: any[],
   parent: string,
@@ -41,7 +46,10 @@ function extractSubcommands(
   }
 }
 
-// Button handler for removing schedules
+/**
+ * Handles the button interaction for removing a schedule.
+ * @param interaction - The button interaction object.
+ */
 export async function handleRemoveScheduleButton(
   interaction: ButtonInteraction
 ) {

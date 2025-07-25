@@ -13,6 +13,9 @@ import fs from "fs";
 import path from "path";
 
 const jobs: Record<string, ScheduledTask[]> = {};
+/**
+ * An object to store scheduled tasks, keyed by schedule ID.
+ */
 
 // --- DYNAMIC COMMAND LOADER ---
 const commandsDir = path.join(__dirname, "../commands");
@@ -39,6 +42,11 @@ interface ScheduledCommandParams {
 }
 
 function getCronExpressions(schedule: ScheduleRow): string[] {
+/**
+ * Generates cron expressions based on a schedule row.
+ * @param schedule - The schedule row object.
+ * @returns An array of cron expressions.
+ */
   // If custom cron_expression is provided, use it directly
   if (schedule.frequency === "custom" && schedule.cron_expression) {
     return [schedule.cron_expression];
@@ -114,6 +122,14 @@ function getCronExpressions(schedule: ScheduleRow): string[] {
   return crons;
 }
 
+/**
+ * Runs a scheduled command.
+ * @param commandString - The command string to run (e.g., "/today", "/exercise pushup").
+ * @param params - Additional parameters for the command.
+ * @param client - The Discord client.
+ * @param channelId - The ID of the channel to send the command result to (if applicable).
+ * @param userId - The ID of the user to send the command result to (if applicable).
+ */
 async function runScheduledCommand(
   commandString: string,
   params: ScheduledCommandParams,
@@ -225,6 +241,13 @@ async function runScheduledCommand(
   }
 }
 
+/**
+ * Sends a scheduled message to a target channel or user.
+ * @param message - The message content to send.
+ * @param client - The Discord client.
+ * @param channelId - The ID of the channel to send the message to (optional).
+ * @param userId - The ID of the user to send the message to (optional).
+ */
 async function sendScheduledMessage(
   message: string,
   client: Client,
@@ -268,6 +291,11 @@ async function sendScheduledMessage(
   }
 }
 
+/**
+ * Starts the scheduler, loading and scheduling tasks from the Google Sheet.
+ * Stops any previously scheduled jobs before starting new ones.
+ * @param client - The Discord client instance.
+ */
 export async function startScheduler(client: Client) {
   // Stop any existing jobs
   Object.values(jobs)
