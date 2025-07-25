@@ -13,6 +13,7 @@ export interface NotionQueryDatabaseRequest {
 }
 
 export interface NotionPage {
+  properties: any;
   id: string;
   created_time: string;
   last_edited_time: string;
