@@ -48,15 +48,18 @@ export async function handleCompleteTask(interaction: ButtonInteraction) {
 // Register the button handler
 registerButtonHandler("complete-task-", handleCompleteTask);
 
-export async function core(params: { userId: string; ephemeral?: boolean }): Promise<CommandResult> {
-/**
- * The core logic for the /today command.
- * Fetches and displays tasks due today from Notion.
- * @param params - The parameters for the core function.
- * @param params.userId - The ID of the user who initiated the command.
- * @param params.ephemeral - Whether the reply should be ephemeral.
- * @returns A promise that resolves to a CommandResult object.
- */
+export async function core(params: {
+  userId: string;
+  ephemeral?: boolean;
+}): Promise<CommandResult> {
+  /**
+   * The core logic for the /today command.
+   * Fetches and displays tasks due up to today from Notion.
+   * @param params - The parameters for the core function.
+   * @param params.userId - The ID of the user who initiated the command.
+   * @param params.ephemeral - Whether the reply should be ephemeral.
+   * @returns A promise that resolves to a CommandResult object.
+   */
   try {
     // TODO: Adjust filter for 'today' tasks
     const response = await notionService.queryDatabase(
@@ -96,7 +99,9 @@ export async function core(params: { userId: string; ephemeral?: boolean }): Pro
 
     response.results.forEach((page, index) => {
       const taskPage = page as NotionPage;
-      const title = taskPage.properties[NotionProperties.TASK].title[0]?.plain_text || page.id;
+      const title =
+        taskPage.properties[NotionProperties.TASK].title[0]?.plain_text ||
+        page.id;
 
       const section = new SectionBuilder()
         .addTextDisplayComponents(
@@ -130,7 +135,7 @@ export async function core(params: { userId: string; ephemeral?: boolean }): Pro
   }
 }
 
-export default {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("today")
     .setDescription("Show today's tasks from Notion tasks database"),
@@ -144,7 +149,9 @@ export default {
           ? { flags: MessageFlags.IsComponentsV2 }
           : {}),
         components: result.components,
-        ...(result.isComponentsV2 ? {} : { content: result.content || undefined }),
+        ...(result.isComponentsV2
+          ? {}
+          : { content: result.content || undefined }),
       });
     } else {
       await interaction.editReply({
@@ -152,4 +159,4 @@ export default {
       });
     }
   },
-} satisfies Command;
+};

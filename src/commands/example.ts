@@ -1,4 +1,3 @@
-
 import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
@@ -31,7 +30,7 @@ export async function core(params: {
   }
 }
 
-export default {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("example")
     .setDescription("An example command.")
@@ -61,4 +60,4 @@ export default {
       await safeReply(interaction, userMessage, errorId);
     }
   },
-} satisfies Command;
+};

@@ -15,15 +15,15 @@ export async function core(params: {
   title: string;
   due?: string | null;
 }): Promise<CommandResult> {
-/**
- * The core logic for the /newtask command.
- * Creates a new task in the Notion database.
- * @param params - The parameters for the core function.
- * @param params.userId - The ID of the user who initiated the command.
- * @param params.title - The title of the task.
- * @param params.due - The due date of the task (optional).
- * @returns A promise that resolves to a CommandResult object.
- */
+  /**
+   * The core logic for the /newtask command.
+   * Creates a new task in the Notion database.
+   * @param params - The parameters for the core function.
+   * @param params.userId - The ID of the user who initiated the command.
+   * @param params.title - The title of the task.
+   * @param params.due - The due date of the task (optional).
+   * @returns A promise that resolves to a CommandResult object.
+   */
   try {
     const { title, due } = params;
     let dueDate: string | undefined;
@@ -63,7 +63,7 @@ export async function core(params: {
   }
 }
 
-export default {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("newtask")
     .setDescription("Create a new task in Notion tasks database")
@@ -100,4 +100,4 @@ export default {
       await safeReply(interaction, userMessage, errorId);
     }
   },
-} satisfies Command;
+};

@@ -1,5 +1,9 @@
 import { Command, CommandResult } from "../types/command";
-import { ExerciseType, ExerciseSheetRow, ExerciseSubcommand } from "../types/exercise";
+import {
+  ExerciseType,
+  ExerciseSheetRow,
+  ExerciseSubcommand,
+} from "../types/exercise";
 import { config } from "../config";
 import {
   SlashCommandBuilder,
@@ -43,13 +47,18 @@ async function logExercise(exerciseType: ExerciseType, amount: number) {
     const todayStr = formatDate(now, DEFAULT_TIMEZONE);
 
     // Read all rows from the sheet
-    let rawRows = (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
+    let rawRows =
+      (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
     let rows: ExerciseSheetRow[] = mapSheetRowsToExerciseSheetRows(rawRows);
     // Find today's row (by column A)
     let todayRowIdx = rows.findIndex((row) => row.date === todayStr);
     if (todayRowIdx === -1) {
       // Row for today not found, append it (leave column B blank)
-      const newRow: ExerciseSheetRow = { date: todayStr, pushups: 0, pullups: 0 };
+      const newRow: ExerciseSheetRow = {
+        date: todayStr,
+        pushups: 0,
+        pullups: 0,
+      };
       rows.push(newRow);
       todayRowIdx = rows.length - 1;
     }
@@ -62,8 +71,12 @@ async function logExercise(exerciseType: ExerciseType, amount: number) {
     }
     rows[todayRowIdx] = row;
     // Write back only the updated row (A, B, C, D)
-    const writeRange = `${EXERCISE_SHEET_NAME}!A${todayRowIdx + 1}:D${todayRowIdx + 1}`;
-    await sheetsService.writeSheet(EXERCISE_SHEET_ID, writeRange, [[row.date, "", row.pushups, row.pullups]]);
+    const writeRange = `${EXERCISE_SHEET_NAME}!A${todayRowIdx + 1}:D${
+      todayRowIdx + 1
+    }`;
+    await sheetsService.writeSheet(EXERCISE_SHEET_ID, writeRange, [
+      [row.date, "", row.pushups, row.pullups],
+    ]);
   } catch (error) {
     const { userMessage } = handleError(error, { location: "logExercise" });
     throw new Error(userMessage);
@@ -104,7 +117,6 @@ registerButtonHandler("exercise-", handleButton);
 
 // Subcommand names as constants
 
-
 /**
  * Core logic for the exercise command
  * @param params - Parameters including userId, subcommand, amount, and timeframe
@@ -120,7 +132,8 @@ export async function core(params: {
     // --- STATS SUBCOMMAND ---
     if (subcommand === ExerciseSubcommand.Stats) {
       // Read all rows from the sheet
-      let rawRows = (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
+      let rawRows =
+        (await sheetsService.readSheet(EXERCISE_SHEET_ID, SHEET_RANGE)) || [];
       let rows: ExerciseSheetRow[] = mapSheetRowsToExerciseSheetRows(rawRows);
       // Remove header if present (assume header if first row is not a date)
       if (
@@ -193,7 +206,10 @@ export async function core(params: {
       return await generateExerciseChart(chartData, data, chartLabel);
     }
     // --- PUSHUP/PULLUP SUBCOMMANDS ---
-    if (subcommand === ExerciseSubcommand.Pushup || subcommand === ExerciseSubcommand.Pullup) {
+    if (
+      subcommand === ExerciseSubcommand.Pushup ||
+      subcommand === ExerciseSubcommand.Pullup
+    ) {
       const exerciseType = subcommand as ExerciseType;
       const exerciseName =
         exerciseType.charAt(0).toUpperCase() + exerciseType.slice(1);
@@ -241,7 +257,7 @@ export async function core(params: {
   }
 }
 
-export default {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("exercise")
     .setDescription("Log your exercise")
@@ -302,7 +318,9 @@ export default {
             ? { flags: [MessageFlags.IsComponentsV2] }
             : {}),
           components: result.components,
-          ...(result.isComponentsV2 ? {} : { content: result.content || undefined }),
+          ...(result.isComponentsV2
+            ? {}
+            : { content: result.content || undefined }),
           files: result.files,
         });
       } else if (result.components && result.components.length > 0) {
@@ -311,7 +329,9 @@ export default {
             ? { flags: [MessageFlags.IsComponentsV2] }
             : {}),
           components: result.components,
-          ...(result.isComponentsV2 ? {} : { content: result.content || undefined }),
+          ...(result.isComponentsV2
+            ? {}
+            : { content: result.content || undefined }),
         });
       } else {
         await interaction.reply({
@@ -326,4 +346,4 @@ export default {
       await safeReply(interaction, userMessage, errorId);
     }
   },
-} satisfies Command;
+};

@@ -69,32 +69,40 @@ export class NotionService {
   }
 
   async queryDatabase(
-  /**
-   * Queries a Notion database.
-   * @param databaseId - The ID of the database to query.
-   * @param query - The query parameters.
-   * @returns A promise that resolves to a NotionQueryDatabaseResponse.
-   */
+    /**
+     * Queries a Notion database.
+     * @param databaseId - The ID of the database to query.
+     * @param query - The query parameters.
+     * @returns A promise that resolves to a NotionQueryDatabaseResponse.
+     */
     databaseId: string,
     query: NotionQueryDatabaseRequest = {}
   ): Promise<NotionQueryDatabaseResponse> {
     try {
-      const res = await fetch(`${NOTION_API_URL}/databases/${databaseId}/query`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          "Notion-Version": NOTION_VERSION,
-        },
-        body: JSON.stringify(query),
-      });
+      const res = await fetch(
+        `${NOTION_API_URL}/databases/${databaseId}/query`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            "Content-Type": "application/json",
+            "Notion-Version": NOTION_VERSION,
+          },
+          body: JSON.stringify(query),
+        }
+      );
       if (!res.ok) {
         const errorText = await res.text();
-        const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
-          location: "notionService:queryDatabase",
-          extra: { databaseId, query, status: res.status },
-        });
-        throw new Error(`Failed to query Notion database. (Error ID: ${errorId})`);
+        const { errorId } = handleError(
+          new Error(`Notion API error: ${res.status} ${errorText}`),
+          {
+            location: "notionService:queryDatabase",
+            extra: { databaseId, query, status: res.status },
+          }
+        );
+        throw new Error(
+          `Failed to query Notion database. (Error ID: ${errorId})`
+        );
       }
       return res.json();
     } catch (error) {
@@ -102,17 +110,19 @@ export class NotionService {
         location: "notionService:queryDatabase",
         extra: { databaseId, query },
       });
-      throw new Error(`Failed to query Notion database. (Error ID: ${errorId})`);
+      throw new Error(
+        `Failed to query Notion database. (Error ID: ${errorId})`
+      );
     }
   }
 
   async updatePage(
-  /**
-   * Updates a Notion page.
-   * @param pageId - The ID of the page to update.
-   * @param update - The update parameters.
-   * @returns A promise that resolves to a NotionUpdatePageResponse.
-   */
+    /**
+     * Updates a Notion page.
+     * @param pageId - The ID of the page to update.
+     * @param update - The update parameters.
+     * @returns A promise that resolves to a NotionUpdatePageResponse.
+     */
     pageId: string,
     update: NotionUpdatePageRequest
   ): Promise<NotionUpdatePageResponse> {
@@ -128,10 +138,13 @@ export class NotionService {
       });
       if (!res.ok) {
         const errorText = await res.text();
-        const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
-          location: "notionService:updatePage",
-          extra: { pageId, update, status: res.status},
-        });
+        const { errorId } = handleError(
+          new Error(`Notion API error: ${res.status} ${errorText}`),
+          {
+            location: "notionService:updatePage",
+            extra: { pageId, update, status: res.status },
+          }
+        );
         throw new Error(`Failed to update Notion page. (Error ID: ${errorId})`);
       }
       return res.json();
@@ -145,11 +158,11 @@ export class NotionService {
   }
 
   async createPage(
-  /**
-   * Creates a new Notion page.
-   * @param create - The creation parameters.
-   * @returns A promise that resolves to a NotionCreatePageResponse.
-   */
+    /**
+     * Creates a new Notion page.
+     * @param create - The creation parameters.
+     * @returns A promise that resolves to a NotionCreatePageResponse.
+     */
     create: NotionCreatePageRequest
   ): Promise<NotionCreatePageResponse> {
     try {
@@ -164,10 +177,13 @@ export class NotionService {
       });
       if (!res.ok) {
         const errorText = await res.text();
-        const { errorId } = handleError(new Error(`Notion API error: ${res.status} ${errorText}`), {
-          location: "notionService:createPage",
-          extra: { create },
-        });
+        const { errorId } = handleError(
+          new Error(`Notion API error: ${res.status} ${errorText}`),
+          {
+            location: "notionService:createPage",
+            extra: { create },
+          }
+        );
         throw new Error(`Failed to create Notion page. (Error ID: ${errorId})`);
       }
       return res.json();

@@ -181,26 +181,11 @@ export async function generateExerciseChart(
     return {
       content: undefined,
       components: [container],
-      files: [{
-          attachment: Buffer.from(imageBuffer), name: attachmentName,
-          description: null,
-          spoiler: false,
-          setDescription: function (description: string): AttachmentBuilder {
-              throw new Error("Function not implemented.");
-          },
-          setFile: function (attachment: BufferResolvable | import("stream"), name?: string): AttachmentBuilder {
-              throw new Error("Function not implemented.");
-          },
-          setName: function (name: string): AttachmentBuilder {
-              throw new Error("Function not implemented.");
-          },
-          setSpoiler: function (spoiler?: boolean): AttachmentBuilder {
-              throw new Error("Function not implemented.");
-          },
-          toJSON: function (): unknown {
-              throw new Error("Function not implemented.");
-          }
-      }],
+      files: [
+        new AttachmentBuilder(Buffer.from(imageBuffer), {
+          name: attachmentName,
+        }),
+      ],
       isComponentsV2: true,
     };
   } catch (error) {

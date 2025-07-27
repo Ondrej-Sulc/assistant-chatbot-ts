@@ -14,7 +14,7 @@ import {
   addSchedule,
   getSchedules,
   deleteSchedule,
-  ScheduleFrequency
+  ScheduleFrequency,
 } from "../utils/sheetsService";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { startScheduler } from "../utils/schedulerService";
@@ -70,7 +70,7 @@ export async function handleRemoveScheduleButton(
 }
 registerButtonHandler("remove-schedule-", handleRemoveScheduleButton);
 
-export default {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("schedule")
     .setDescription("Manage scheduled tasks")
@@ -186,7 +186,10 @@ export default {
     try {
       if (subcommand === "add") {
         const name = interaction.options.getString("name", true);
-        const frequency = interaction.options.getString("frequency", true) as ScheduleFrequency;
+        const frequency = interaction.options.getString(
+          "frequency",
+          true
+        ) as ScheduleFrequency;
         const time = interaction.options.getString("time", true);
         const command = interaction.options.getString("command") || undefined;
         const message = interaction.options.getString("message") || undefined;
@@ -197,7 +200,8 @@ export default {
         const day = interaction.options.getString("day") || undefined;
         const interval = interaction.options.getString("interval") || undefined;
         const rawUnit = interaction.options.getString("unit");
-        const unit = rawUnit === "days" || rawUnit === "weeks" ? rawUnit : undefined;
+        const unit =
+          rawUnit === "days" || rawUnit === "weeks" ? rawUnit : undefined;
         const cron_expression =
           interaction.options.getString("cron_expression") || undefined;
 
@@ -367,4 +371,4 @@ export default {
       .slice(0, 25);
     await interaction.respond(filtered.map((c) => ({ name: c, value: c })));
   },
-} satisfies Command;
+};

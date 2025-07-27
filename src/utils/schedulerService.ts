@@ -42,11 +42,11 @@ interface ScheduledCommandParams {
 }
 
 function getCronExpressions(schedule: ScheduleRow): string[] {
-/**
- * Generates cron expressions based on a schedule row.
- * @param schedule - The schedule row object.
- * @returns An array of cron expressions.
- */
+  /**
+   * Generates cron expressions based on a schedule row.
+   * @param schedule - The schedule row object.
+   * @returns An array of cron expressions.
+   */
   // If custom cron_expression is provided, use it directly
   if (schedule.frequency === "custom" && schedule.cron_expression) {
     return [schedule.cron_expression];
@@ -154,10 +154,19 @@ async function runScheduledCommand(
     console.warn(`[Scheduler] No core function for command: ${cmdName}`);
     return;
   }
-  let result: { content?: string; components?: any[]; files?: any[]; isComponentsV2?: boolean } = {};
+  let result: {
+    content?: string;
+    components?: any[];
+    files?: any[];
+    isComponentsV2?: boolean;
+  } = {};
   try {
     // Generalized mapping: if args are present, map to subcommand, amount, timeframe
-    let callParams: ScheduledCommandParams = { ...params, args, userId: targetUserId };
+    let callParams: ScheduledCommandParams = {
+      ...params,
+      args,
+      userId: targetUserId,
+    };
     if (Array.isArray(args) && args.length > 0) {
       callParams = { ...params, userId: targetUserId };
       callParams.subcommand = args[0];
@@ -319,7 +328,9 @@ export async function startScheduler(client: Client) {
       const job = cron.schedule(
         cronExpr,
         async () => {
-          console.log(`[Scheduler] Triggering schedule: ${JSON.stringify(schedule)}`);
+          console.log(
+            `[Scheduler] Triggering schedule: ${JSON.stringify(schedule)}`
+          );
           if (schedule.message && schedule.message.trim()) {
             await sendScheduledMessage(
               schedule.message,

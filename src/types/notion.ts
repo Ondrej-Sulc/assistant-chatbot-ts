@@ -15,7 +15,7 @@ interface NotionPropertyBase {
 }
 
 export interface TitleProperty extends NotionPropertyBase {
-  type: 'title';
+  type: "title";
   title: {
     text: {
       content: string;
@@ -25,12 +25,12 @@ export interface TitleProperty extends NotionPropertyBase {
 }
 
 export interface CheckboxProperty extends NotionPropertyBase {
-  type: 'checkbox';
+  type: "checkbox";
   checkbox: boolean;
 }
 
 export interface SelectProperty extends NotionPropertyBase {
-  type: 'select';
+  type: "select";
   select: null | {
     id: string;
     name: string;
@@ -39,7 +39,7 @@ export interface SelectProperty extends NotionPropertyBase {
 }
 
 export interface DateProperty extends NotionPropertyBase {
-  type: 'date';
+  type: "date";
   date: null | {
     start: string;
     end: string | null;
@@ -57,23 +57,25 @@ export interface TaskPageProperties {
 }
 
 export interface NotionTaskPage {
-  object: 'page';
+  object: "page";
   id: string;
   properties: TaskPageProperties;
 }
 
 // --- Notion API Input Types ---
 
-export type NotionTitlePropertyInput = { title: { text: { content: string } }[] };
+export type NotionTitlePropertyInput = {
+  title: { text: { content: string } }[];
+};
 export type NotionCheckboxPropertyInput = { checkbox: boolean };
 export type NotionSelectPropertyInput = { select: { name: string } };
 export type NotionDatePropertyInput = { date: { start: string } };
 
 export type NotionPagePropertiesInput = {
-    [NotionProperties.TASK]?: NotionTitlePropertyInput;
-    [NotionProperties.INBOX]?: NotionCheckboxPropertyInput;
-    [NotionProperties.KANBAN_STATE]?: NotionSelectPropertyInput;
-    [NotionProperties.PRIORITY]?: NotionSelectPropertyInput;
-    [NotionProperties.DUE]?: NotionDatePropertyInput;
-    [NotionProperties.DONE]?: NotionCheckboxPropertyInput;
-}
+  [NotionProperties.TASK]?: NotionTitlePropertyInput;
+  [NotionProperties.INBOX]?: NotionCheckboxPropertyInput;
+  [NotionProperties.KANBAN_STATE]?: NotionSelectPropertyInput;
+  [NotionProperties.PRIORITY]?: NotionSelectPropertyInput;
+  [NotionProperties.DUE]?: NotionDatePropertyInput;
+  [NotionProperties.DONE]?: NotionCheckboxPropertyInput;
+};

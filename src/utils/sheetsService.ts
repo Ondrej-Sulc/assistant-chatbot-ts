@@ -17,16 +17,16 @@ export interface ScheduleRow {
   created_at: string;
   day?: string;
   interval?: string;
-  unit?: 'days' | 'weeks';
+  unit?: "days" | "weeks";
   cron_expression?: string;
 }
 
 export enum ScheduleFrequency {
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  MONTHLY = 'monthly',
-  EVERY = 'every',
-  CUSTOM = 'custom',
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+  EVERY = "every",
+  CUSTOM = "custom",
 }
 
 const SCHEDULES_SHEET_NAME = "Schedules";
@@ -97,7 +97,9 @@ class SheetsService {
         location: "sheetsService:readSheet",
         extra: { spreadsheetId, range },
       });
-      throw new Error(`Failed to read from Google Sheets. (Error ID: ${errorId})`);
+      throw new Error(
+        `Failed to read from Google Sheets. (Error ID: ${errorId})`
+      );
     }
   }
 
@@ -129,7 +131,9 @@ class SheetsService {
         location: "sheetsService:writeSheet",
         extra: { spreadsheetId, range },
       });
-      throw new Error(`Failed to write to Google Sheets. (Error ID: ${errorId})`);
+      throw new Error(
+        `Failed to write to Google Sheets. (Error ID: ${errorId})`
+      );
     }
   }
 
@@ -162,7 +166,9 @@ class SheetsService {
         location: "sheetsService:appendSheet",
         extra: { spreadsheetId, range },
       });
-      throw new Error(`Failed to append to Google Sheets. (Error ID: ${errorId})`);
+      throw new Error(
+        `Failed to append to Google Sheets. (Error ID: ${errorId})`
+      );
     }
   }
 }
@@ -198,10 +204,10 @@ function toReadableTimeFormat(value: string): string {
 }
 
 export async function getSchedules(): Promise<ScheduleRow[]> {
-/**
- * Retrieves all schedules from the Google Sheet.
- * @returns A promise that resolves to an array of ScheduleRow objects.
- */
+  /**
+   * Retrieves all schedules from the Google Sheet.
+   * @returns A promise that resolves to an array of ScheduleRow objects.
+   */
   const rows =
     (await sheetsService.readSheet(
       config.EXERCISE_SHEET_ID,
@@ -211,29 +217,31 @@ export async function getSchedules(): Promise<ScheduleRow[]> {
   if (rows.length && rows[0][0] === "id") {
     rows.shift();
   }
-  return rows.map((row): ScheduleRow => ({
-    id: row[0],
-    name: row[1],
-    frequency: row[2],
-    time: row[3],
-    command: row[4],
-    message: row[5],
-    target_channel_id: row[6],
-    target_user_id: row[7],
-    is_active: row[8] === "TRUE" || row[8] === true,
-    created_at: row[9],
-    day: row[10],
-    interval: row[11],
-    unit: row[12],
-    cron_expression: row[13],
-  }));
+  return rows.map(
+    (row): ScheduleRow => ({
+      id: row[0],
+      name: row[1],
+      frequency: row[2],
+      time: row[3],
+      command: row[4],
+      message: row[5],
+      target_channel_id: row[6],
+      target_user_id: row[7],
+      is_active: row[8] === "TRUE" || row[8] === true,
+      created_at: row[9],
+      day: row[10],
+      interval: row[11],
+      unit: row[12],
+      cron_expression: row[13],
+    })
+  );
 }
 
 export async function addSchedule(
-/**
- * Adds a new schedule to the Google Sheet.
- * @param schedule - The schedule object to add.
- */
+  /**
+   * Adds a new schedule to the Google Sheet.
+   * @param schedule - The schedule object to add.
+   */
   schedule: Omit<ScheduleRow, "id" | "created_at">
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -262,12 +270,12 @@ export async function addSchedule(
 }
 
 export async function updateSchedule(
-/**
- * Updates an existing schedule in the Google Sheet.
- * @param id - The ID of the schedule to update.
- * @param updates - The partial schedule object with updates.
- * @throws Will throw an error if the schedule is not found.
- */
+  /**
+   * Updates an existing schedule in the Google Sheet.
+   * @param id - The ID of the schedule to update.
+   * @param updates - The partial schedule object with updates.
+   * @throws Will throw an error if the schedule is not found.
+   */
   id: string,
   updates: Partial<ScheduleRow>
 ): Promise<void> {
@@ -296,9 +304,9 @@ export async function updateSchedule(
 }
 
 export async function deleteSchedule(id: string): Promise<void> {
-/**
- * Deletes (marks as inactive) a schedule in the Google Sheet.
- * @param id - The ID of the schedule to delete.
- */
+  /**
+   * Deletes (marks as inactive) a schedule in the Google Sheet.
+   * @param id - The ID of the schedule to delete.
+   */
   await updateSchedule(id, { is_active: false });
 }
