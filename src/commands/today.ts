@@ -146,7 +146,7 @@ export const command: Command = {
     if (result.components && result.components.length > 0) {
       await interaction.editReply({
         ...(result.isComponentsV2
-          ? { flags: MessageFlags.IsComponentsV2 }
+          ? { flags: [MessageFlags.IsComponentsV2] }
           : {}),
         components: result.components,
         ...(result.isComponentsV2

@@ -10,6 +10,7 @@ interface Config {
   OPEN_ROUTER_API_KEY: string;
   GOOGLE_CREDENTIALS_JSON: string;
   EXERCISE_SHEET_ID: string;
+  SCHEDULE_SHEET_ID: string;
   TIMEZONE: string;
   NOTION_TASKS_DATABASE_ID: string;
 }
@@ -54,6 +55,7 @@ const createConfig = (): Config => {
     OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
     GOOGLE_CREDENTIALS_JSON: getEnv("GOOGLE_CREDENTIALS_JSON"),
     EXERCISE_SHEET_ID: "14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc",
+    SCHEDULE_SHEET_ID: "14xSHd8mXofkixOoAaRmckrcbH_gq4OPQC58-DyYOZlc",
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
     NOTION_TASKS_DATABASE_ID: "b901624ee2024a2b8c2bfbe6f94cacd4",
   };

@@ -210,7 +210,7 @@ export async function getSchedules(): Promise<ScheduleRow[]> {
    */
   const rows =
     (await sheetsService.readSheet(
-      config.EXERCISE_SHEET_ID,
+      config.SCHEDULE_SHEET_ID,
       SCHEDULES_RANGE
     )) || [];
   // Remove header if present
@@ -263,7 +263,7 @@ export async function addSchedule(
     schedule.cron_expression || "",
   ];
   await sheetsService.appendSheet(
-    config.EXERCISE_SHEET_ID,
+    config.SCHEDULE_SHEET_ID,
     SCHEDULES_SHEET_NAME,
     [row]
   );
@@ -300,7 +300,7 @@ export async function updateSchedule(
     updated.cron_expression || "",
   ];
   const writeRange = `${SCHEDULES_SHEET_NAME}!A${idx + 1}:N${idx + 1}`;
-  await sheetsService.writeSheet(config.EXERCISE_SHEET_ID, writeRange, [row]);
+  await sheetsService.writeSheet(config.SCHEDULE_SHEET_ID, writeRange, [row]);
 }
 
 export async function deleteSchedule(id: string): Promise<void> {
