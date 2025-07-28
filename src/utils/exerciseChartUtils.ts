@@ -153,43 +153,38 @@ export async function generateExerciseChart(
     },
   });
   chart.setWidth(800).setHeight(400).setBackgroundColor("#23272a");
-  try {
-    const imageBuffer = await chart.toBinary();
-    const attachmentName = "exercise-stats.png";
-    const totalPushups = data.reduce((sum, r) => sum + r.pushups, 0);
-    const totalPullups = data.reduce((sum, r) => sum + r.pullups, 0);
-    const avgPushupsVal =
-      data.length > 0 ? Math.round(totalPushups / data.length) : 0;
-    const avgPullupsVal =
-      data.length > 0 ? Math.round(totalPullups / data.length) : 0;
-    const statsSummary =
-      `**Stats for ${chartLabel}:**\n` +
-      `\n` +
-      `- Total Pushups: **${totalPushups}**` +
-      `\n- Total Pullups: **${totalPullups}**` +
-      `\n- Average Pushups per Day: **${avgPushupsVal}**` +
-      `\n- Average Pullups per Day: **${avgPullupsVal}**`;
-    const container = new ContainerBuilder();
-    const mediaItem = new MediaGalleryItemBuilder().setURL(
-      `attachment://${attachmentName}`
-    );
-    const mediaGallery = new MediaGalleryBuilder().addItems([mediaItem]);
-    container.addMediaGalleryComponents(mediaGallery);
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(statsSummary)
-    );
-    return {
-      content: undefined,
-      components: [container],
-      files: [
-        new AttachmentBuilder(Buffer.from(imageBuffer), {
-          name: attachmentName,
-        }),
-      ],
-      isComponentsV2: true,
-    };
-  } catch (error) {
-    console.error("Failed to generate chart:", error);
-    return { content: "Failed to generate chart. Please try again later." };
-  }
+  const imageBuffer = await chart.toBinary();
+  const attachmentName = "exercise-stats.png";
+  const totalPushups = data.reduce((sum, r) => sum + r.pushups, 0);
+  const totalPullups = data.reduce((sum, r) => sum + r.pullups, 0);
+  const avgPushupsVal =
+    data.length > 0 ? Math.round(totalPushups / data.length) : 0;
+  const avgPullupsVal =
+    data.length > 0 ? Math.round(totalPullups / data.length) : 0;
+  const statsSummary =
+    `**Stats for ${chartLabel}:**\n` +
+    `\n` +
+    `- Total Pushups: **${totalPushups}**` +
+    `\n- Total Pullups: **${totalPullups}**` +
+    `\n- Average Pushups per Day: **${avgPushupsVal}**` +
+    `\n- Average Pullups per Day: **${avgPullupsVal}**`;
+  const container = new ContainerBuilder();
+  const mediaItem = new MediaGalleryItemBuilder().setURL(
+    `attachment://${attachmentName}`
+  );
+  const mediaGallery = new MediaGalleryBuilder().addItems([mediaItem]);
+  container.addMediaGalleryComponents(mediaGallery);
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(statsSummary)
+  );
+  return {
+    content: undefined,
+    components: [container],
+    files: [
+      new AttachmentBuilder(Buffer.from(imageBuffer), {
+        name: attachmentName,
+      }),
+    ],
+    isComponentsV2: true,
+  };
 }

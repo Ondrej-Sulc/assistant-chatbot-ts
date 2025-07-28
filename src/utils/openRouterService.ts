@@ -49,36 +49,19 @@ export class OpenRouterService {
      * @param request - The chat request parameters.
      * @returns A promise that resolves to an OpenRouterResponse.
      */
-    try {
-      const res = await fetch(OPEN_ROUTER_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify(request),
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        const { errorId } = handleError(
-          new Error(`OpenRouter API error: ${res.status} ${errorText}`),
-          {
-            location: "openRouterService:chat",
-            extra: { request },
-          }
-        );
-        throw new Error(
-          `Failed to chat with OpenRouter. (Error ID: ${errorId})`
-        );
-      }
-      return res.json();
-    } catch (error) {
-      const { errorId } = handleError(error, {
-        location: "openRouterService:chat",
-        extra: { request },
-      });
-      throw new Error(`Failed to chat with OpenRouter. (Error ID: ${errorId})`);
+    const res = await fetch(OPEN_ROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(request),
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`OpenRouter API error: ${res.status} ${errorText}`);
     }
+    return res.json();
   }
 }
 
