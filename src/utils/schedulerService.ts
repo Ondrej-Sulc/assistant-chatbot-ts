@@ -154,36 +154,25 @@ async function runScheduledCommand(
     console.warn(`[Scheduler] No core function for command: ${cmdName}`);
     return;
   }
-  let result: {
-    content?: string;
-    components?: any[];
-    files?: any[];
-    isComponentsV2?: boolean;
-  } = {};
-  try {
-    // Generalized mapping: if args are present, map to subcommand, amount, timeframe
-    let callParams: ScheduledCommandParams = {
-      ...params,
-      args,
-      userId: targetUserId,
-    };
-    if (Array.isArray(args) && args.length > 0) {
-      callParams = { ...params, userId: targetUserId };
-      callParams.subcommand = args[0];
-      if (args[1]) {
-        const n = parseInt(args[1], 10);
-        callParams.amount = !isNaN(n) ? n : args[1];
-      }
-      if (args[2]) {
-        callParams.timeframe = args[2];
-      }
-      callParams.args = args;
+  // Generalized mapping: if args are present, map to subcommand, amount, timeframe
+  let callParams: ScheduledCommandParams = {
+    ...params,
+    args,
+    userId: targetUserId,
+  };
+  if (Array.isArray(args) && args.length > 0) {
+    callParams = { ...params, userId: targetUserId };
+    callParams.subcommand = args[0];
+    if (args[1]) {
+      const n = parseInt(args[1], 10);
+      callParams.amount = !isNaN(n) ? n : args[1];
     }
-    result = await coreFn(callParams);
-  } catch (err) {
-    console.error(`[Scheduler] Error running core for ${cmdName}:`, err);
-    result = { content: `Failed to run scheduled command: ${cmdName}` };
+    if (args[2]) {
+      callParams.timeframe = args[2];
+    }
+    callParams.args = args;
   }
+  const result = await coreFn(callParams);
 
   if (targetUserId) {
     // Send DM to user

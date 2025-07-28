@@ -183,146 +183,138 @@ export const command: Command = {
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
     const subcommand = interaction.options.getSubcommand(true);
-    try {
-      if (subcommand === "add") {
-        const name = interaction.options.getString("name", true);
-        const frequency = interaction.options.getString(
-          "frequency",
-          true
-        ) as ScheduleFrequency;
-        const time = interaction.options.getString("time", true);
-        const command = interaction.options.getString("command") || undefined;
-        const message = interaction.options.getString("message") || undefined;
-        let target_channel_id =
-          interaction.options.getString("target_channel_id") || undefined;
-        let target_user_id =
-          interaction.options.getString("target_user_id") || undefined;
-        const day = interaction.options.getString("day") || undefined;
-        const interval = interaction.options.getString("interval") || undefined;
-        const rawUnit = interaction.options.getString("unit");
-        const unit =
-          rawUnit === "days" || rawUnit === "weeks" ? rawUnit : undefined;
-        const cron_expression =
-          interaction.options.getString("cron_expression") || undefined;
+    if (subcommand === "add") {
+      const name = interaction.options.getString("name", true);
+      const frequency = interaction.options.getString(
+        "frequency",
+        true
+      ) as ScheduleFrequency;
+      const time = interaction.options.getString("time", true);
+      const command = interaction.options.getString("command") || undefined;
+      const message = interaction.options.getString("message") || undefined;
+      let target_channel_id =
+        interaction.options.getString("target_channel_id") || undefined;
+      let target_user_id =
+        interaction.options.getString("target_user_id") || undefined;
+      const day = interaction.options.getString("day") || undefined;
+      const interval = interaction.options.getString("interval") || undefined;
+      const rawUnit = interaction.options.getString("unit");
+      const unit =
+        rawUnit === "days" || rawUnit === "weeks" ? rawUnit : undefined;
+      const cron_expression =
+        interaction.options.getString("cron_expression") || undefined;
 
-        // Require at least one of command or message
-        if (!command && !message) {
-          await safeReply(
-            interaction,
-            "❌ Please provide either a command or a message to schedule."
-          );
-          return;
-        }
-
-        // Set default target if not provided
-        if (!target_channel_id && !target_user_id) {
-          if (
-            interaction.channel &&
-            interaction.channel.isTextBased() &&
-            interaction.guildId
-          ) {
-            target_channel_id = interaction.channelId;
-          } else {
-            target_user_id = interaction.user.id;
-          }
-        }
-
-        await addSchedule({
-          name,
-          frequency,
-          time,
-          command: command || "",
-          message: message || "",
-          target_channel_id,
-          target_user_id,
-          is_active: true,
-          day,
-          interval,
-          unit,
-          cron_expression,
-        });
-        await startScheduler(interaction.client);
+      // Require at least one of command or message
+      if (!command && !message) {
         await safeReply(
           interaction,
-          `✅ Scheduled task:\n- Name: **${name}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- ${
-            message ? `Message: \`${message}\`` : `Command: \`${command}\``
-          }\n${day ? `- Day: ${day}\n` : ""}${
-            interval ? `- Interval: ${interval}\n` : ""
-          }${unit ? `- Unit: ${unit}\n` : ""}${
-            cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""
-          }${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${
-            target_user_id ? `- User: <@${target_user_id}>\n` : ""
-          }`
+          "❌ Please provide either a command or a message to schedule."
         );
-      } else if (subcommand === "list") {
-        const schedules = (await getSchedules()).filter((s) => s.is_active);
-        if (!schedules.length) {
-          await safeReply(interaction, "No active schedules found.");
-          return;
-        }
-        const container = new ContainerBuilder();
-        const header = new TextDisplayBuilder().setContent(
-          "**Active Schedules:**"
-        );
-        container.addTextDisplayComponents(header);
-
-        schedules.forEach((s, i) => {
-          const section = new SectionBuilder()
-            .addTextDisplayComponents(
-              new TextDisplayBuilder().setContent(
-                `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${
-                  s.message ? `"${s.message}"` : `\`${s.command}\``
-                } (ID: \`${s.id}\`)${
-                  s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""
-                }${s.target_user_id ? ` (<@${s.target_user_id}>)` : ""}`
-              )
-            )
-            .setButtonAccessory(
-              new ButtonBuilder()
-                .setCustomId(`remove-schedule-${s.id}`)
-                .setLabel("❌")
-                .setStyle(ButtonStyle.Secondary)
-            );
-          container.addSectionComponents(section);
-        });
-        await interaction.editReply({
-          flags: [MessageFlags.IsComponentsV2],
-          components: [container],
-        });
-      } else if (subcommand === "remove") {
-        let id = interaction.options.getString("id");
-        const number = interaction.options.getInteger("number");
-        if (!id && number) {
-          const schedules = (await getSchedules()).filter((s) => s.is_active);
-          if (number < 1 || number > schedules.length) {
-            await safeReply(
-              interaction,
-              `❌ Invalid schedule number. Use /schedule list to see numbers.`
-            );
-            return;
-          }
-          id = schedules[number - 1].id;
-        }
-        if (!id) {
-          await safeReply(
-            interaction,
-            `❌ Please provide either an ID or a list number.`
-          );
-          return;
-        }
-        await deleteSchedule(id);
-        await startScheduler(interaction.client);
-        await safeReply(
-          interaction,
-          `❌ Schedule with ID \`${id}\` has been removed (set inactive).`
-        );
+        return;
       }
-    } catch (error) {
-      const { userMessage, errorId } = handleError(error, {
-        location: "command:schedule:execute",
-        userId: interaction.user?.id,
+
+      // Set default target if not provided
+      if (!target_channel_id && !target_user_id) {
+        if (
+          interaction.channel &&
+          interaction.channel.isTextBased() &&
+          interaction.guildId
+        ) {
+          target_channel_id = interaction.channelId;
+        } else {
+          target_user_id = interaction.user.id;
+        }
+      }
+
+      await addSchedule({
+        name,
+        frequency,
+        time,
+        command: command || "",
+        message: message || "",
+        target_channel_id,
+        target_user_id,
+        is_active: true,
+        day,
+        interval,
+        unit,
+        cron_expression,
       });
-      await safeReply(interaction, userMessage, errorId);
+      await startScheduler(interaction.client);
+      await safeReply(
+        interaction,
+        `✅ Scheduled task:\n- Name: **${name}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- ${
+          message ? `Message: \`${message}\`` : `Command: \`${command}\``
+        }\n${day ? `- Day: ${day}\n` : ""}${
+          interval ? `- Interval: ${interval}\n` : ""
+        }${unit ? `- Unit: ${unit}\n` : ""}${
+          cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""
+        }${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${
+          target_user_id ? `- User: <@${target_user_id}>\n` : ""
+        }`
+      );
+    } else if (subcommand === "list") {
+      const schedules = (await getSchedules()).filter((s) => s.is_active);
+      if (!schedules.length) {
+        await safeReply(interaction, "No active schedules found.");
+        return;
+      }
+      const container = new ContainerBuilder();
+      const header = new TextDisplayBuilder().setContent(
+        "**Active Schedules:**"
+      );
+      container.addTextDisplayComponents(header);
+
+      schedules.forEach((s, i) => {
+        const section = new SectionBuilder()
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${
+                s.message ? `"${s.message}"` : `\`${s.command}\``
+              } (ID: \`${s.id}\`)${
+                s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""
+              }${s.target_user_id ? ` (<@${s.target_user_id}>)` : ""}`
+            )
+          )
+          .setButtonAccessory(
+            new ButtonBuilder()
+              .setCustomId(`remove-schedule-${s.id}`)
+              .setLabel("❌")
+              .setStyle(ButtonStyle.Secondary)
+          );
+        container.addSectionComponents(section);
+      });
+      await interaction.editReply({
+        flags: [MessageFlags.IsComponentsV2],
+        components: [container],
+      });
+    } else if (subcommand === "remove") {
+      let id = interaction.options.getString("id");
+      const number = interaction.options.getInteger("number");
+      if (!id && number) {
+        const schedules = (await getSchedules()).filter((s) => s.is_active);
+        if (number < 1 || number > schedules.length) {
+          await safeReply(
+            interaction,
+            `❌ Invalid schedule number. Use /schedule list to see numbers.`
+          );
+          return;
+        }
+        id = schedules[number - 1].id;
+      }
+      if (!id) {
+        await safeReply(
+          interaction,
+          `❌ Please provide either an ID or a list number.`
+        );
+        return;
+      }
+      await deleteSchedule(id);
+      await startScheduler(interaction.client);
+      await safeReply(
+        interaction,
+        `❌ Schedule with ID \`${id}\` has been removed (set inactive).`
+      );
     }
   },
   async autocomplete(interaction) {

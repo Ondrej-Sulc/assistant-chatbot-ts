@@ -86,21 +86,11 @@ class SheetsService {
     spreadsheetId: string,
     range: string
   ): Promise<any[][] | null> {
-    try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range,
-      });
-      return response.data.values || null;
-    } catch (error) {
-      const { errorId } = handleError(error, {
-        location: "sheetsService:readSheet",
-        extra: { spreadsheetId, range },
-      });
-      throw new Error(
-        `Failed to read from Google Sheets. (Error ID: ${errorId})`
-      );
-    }
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    return response.data.values || null;
   }
 
   /**
@@ -116,25 +106,15 @@ class SheetsService {
     range: string,
     values: any[][]
   ): Promise<number> {
-    try {
-      const response = await this.sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range,
-        valueInputOption: "USER_ENTERED",
-        requestBody: {
-          values,
-        },
-      });
-      return response.data.updatedCells || 0;
-    } catch (error) {
-      const { errorId } = handleError(error, {
-        location: "sheetsService:writeSheet",
-        extra: { spreadsheetId, range },
-      });
-      throw new Error(
-        `Failed to write to Google Sheets. (Error ID: ${errorId})`
-      );
-    }
+    const response = await this.sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values,
+      },
+    });
+    return response.data.updatedCells || 0;
   }
 
   /**
@@ -150,26 +130,16 @@ class SheetsService {
     range: string,
     values: any[][]
   ): Promise<number> {
-    try {
-      const response = await this.sheets.spreadsheets.values.append({
-        spreadsheetId,
-        range,
-        valueInputOption: "USER_ENTERED",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: {
-          values,
-        },
-      });
-      return response.data.updates?.updatedCells || 0;
-    } catch (error) {
-      const { errorId } = handleError(error, {
-        location: "sheetsService:appendSheet",
-        extra: { spreadsheetId, range },
-      });
-      throw new Error(
-        `Failed to append to Google Sheets. (Error ID: ${errorId})`
-      );
-    }
+    const response = await this.sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values,
+      },
+    });
+    return response.data.updates?.updatedCells || 0;
   }
 }
 
