@@ -81,15 +81,23 @@ export const command: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    const title = interaction.options.getString("title", true);
-    const due = interaction.options.getString("due");
-    const result = await core({
-      userId: interaction.user.id,
-      title,
-      due,
-    });
-    await interaction.editReply({
-      content: result.content || undefined,
-    });
+    try {
+      const title = interaction.options.getString("title", true);
+      const due = interaction.options.getString("due");
+      const result = await core({
+        userId: interaction.user.id,
+        title,
+        due,
+      });
+      await interaction.editReply({
+        content: result.content || undefined,
+      });
+    } catch (error) {
+      const { userMessage, errorId } = handleError(error, {
+        location: "command:newtask",
+        userId: interaction.user.id,
+      });
+      await safeReply(interaction, userMessage, errorId);
+    }
   },
 };

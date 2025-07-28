@@ -89,13 +89,21 @@ export async function handleButton(interaction: ButtonInteraction) {
   }
   const exerciseType = match[1] as ExerciseType;
   const amount = parseInt(match[2], 10);
-  await logExercise(exerciseType, amount);
-  await interaction.reply({
-    content: `Logged ${amount} ${exerciseType}${
-      amount === 1 ? "" : "s"
-    } for today!`,
-    flags: [MessageFlags.Ephemeral],
-  });
+  try {
+    await logExercise(exerciseType, amount);
+    await interaction.reply({
+      content: `Logged ${amount} ${exerciseType}${
+        amount === 1 ? "" : "s"
+      } for today!`,
+      flags: [MessageFlags.Ephemeral],
+    });
+  } catch (error) {
+    const { userMessage, errorId } = handleError(error, {
+      location: `button:exercise-${exerciseType}-${amount}`,
+      userId: interaction.user.id,
+    });
+    await safeReply(interaction, userMessage, errorId);
+  }
 }
 
 // Register the handler for all exercise- buttons

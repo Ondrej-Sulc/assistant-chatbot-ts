@@ -124,7 +124,7 @@ export async function core(params: {
     };
   } catch (error) {
     const { userMessage } = handleError(error, {
-      location: "command:today",
+      location: "command:today:core",
       userId: params.userId,
     });
     return {
@@ -142,21 +142,29 @@ export const command: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-    const result = await core({ userId: interaction.user.id, ephemeral: true });
-    if (result.components && result.components.length > 0) {
-      await interaction.editReply({
-        ...(result.isComponentsV2
-          ? { flags: [MessageFlags.IsComponentsV2] }
-          : {}),
-        components: result.components,
-        ...(result.isComponentsV2
-          ? {}
-          : { content: result.content || undefined }),
+    try {
+      const result = await core({ userId: interaction.user.id, ephemeral: true });
+      if (result.components && result.components.length > 0) {
+        await interaction.editReply({
+          ...(result.isComponentsV2
+            ? { flags: [MessageFlags.IsComponentsV2] }
+            : {}),
+          components: result.components,
+          ...(result.isComponentsV2
+            ? {}
+            : { content: result.content || undefined }),
+        });
+      } else {
+        await interaction.editReply({
+          content: result.content,
+        });
+      }
+    } catch (error) {
+      const { userMessage, errorId } = handleError(error, {
+        location: "command:today",
+        userId: interaction.user.id,
       });
-    } else {
-      await interaction.editReply({
-        content: result.content,
-      });
+      await safeReply(interaction, userMessage, errorId);
     }
   },
 };

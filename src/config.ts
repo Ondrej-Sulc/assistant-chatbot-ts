@@ -37,7 +37,8 @@ const createConfig = (): Config => {
    * @throws Will throw an error if any required environment variables are missing.
    */
   const required = {
-    DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN,
+    DISCORD_BOT_TOKEN_PROD: process.env.DISCORD_BOT_TOKEN_PROD,
+    DISCORD_BOT_TOKEN_DEV: process.env.DISCORD_BOT_TOKEN_DEV,
     DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
     NOTION_API_KEY: process.env.NOTION_API_KEY,
     OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
@@ -49,7 +50,11 @@ const createConfig = (): Config => {
   });
 
   return {
-    BOT_TOKEN: getEnv("DISCORD_BOT_TOKEN"),
+    BOT_TOKEN: getEnv(
+      process.env.NODE_ENV === "production"
+        ? "DISCORD_BOT_TOKEN_PROD"
+        : "DISCORD_BOT_TOKEN_DEV"
+    ),
     APPLICATION_ID: getEnv("DISCORD_APPLICATION_ID"),
     NOTION_API_KEY: getEnv("NOTION_API_KEY"),
     OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
